@@ -291,13 +291,14 @@ const StatistiquesAPI = {
 // ==================== FONCTIONS UTILITAIRES ====================
 
 /**
- * Formate un nombre en devise EUR
+ * Formate un nombre en devise DH (Dirham marocain)
  */
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR'
+    const formatted = new Intl.NumberFormat('fr-MA', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     }).format(amount || 0);
+    return formatted + ' DH';
 }
 
 /**
@@ -438,5 +439,7 @@ window.Utils = {
     showToast,
     showConfirm,
     getDevisStatutBadge,
-    getFactureStatutBadge
+    getDevisStatusBadge: getDevisStatutBadge, // Alias pour compatibilité
+    getFactureStatutBadge,
+    getFactureStatusBadge: getFactureStatutBadge // Alias pour compatibilité
 };

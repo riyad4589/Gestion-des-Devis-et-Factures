@@ -25,14 +25,22 @@ function setupEventListeners() {
     });
 
     // Recherche
-    const searchInput = document.querySelector('input[placeholder*="Rechercher"]');
+    const searchInput = document.querySelector('#search-input, input[placeholder*="Rechercher"]');
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
             filterFactures(e.target.value);
         }, 300));
     }
 
-    // Filtres de statut
+    // Select de statut natif
+    const statusSelect = document.getElementById('status-filter');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+            filterByStatus(e.target.value);
+        });
+    }
+
+    // Filtres de statut (boutons)
     setupStatusFilters();
 }
 
@@ -128,7 +136,7 @@ function renderFactures(factures) {
     tbody.innerHTML = factures.map(f => `
         <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
             <td class="px-4 py-3">
-                <span class="font-medium text-gray-900 dark:text-white">FAC-${String(f.id).padStart(4, '0')}</span>
+                <span class="font-medium text-gray-900 dark:text-white">${f.numeroFacture || `FAC-${String(f.id).padStart(4, '0')}`}</span>
             </td>
             <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
@@ -138,8 +146,8 @@ function renderFactures(factures) {
                     <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(f.client?.nom || 'Client inconnu')}</span>
                 </div>
             </td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(f.dateCreation)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${f.dateEcheance ? Utils.formatDate(f.dateEcheance) : '-'}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(f.dateFacture)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">-</td>
             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(f.montantTTC)}</td>
             <td class="px-4 py-3">${Utils.getFactureStatusBadge(f.statut)}</td>
             <td class="px-4 py-3">
@@ -309,3 +317,10 @@ window.FacturesPage = {
     filterFactures,
     filterByStatus
 };
+
+// Exposer les fonctions globalement pour le HTML onclick
+window.viewFacture = viewFacture;
+window.editFacture = editFacture;
+window.payerFacture = payerFacture;
+window.deleteFacture = deleteFacture;
+window.filterByStatus = filterByStatus;

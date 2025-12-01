@@ -72,49 +72,57 @@ async function loadFacture() {
  * Affiche les détails de la facture
  */
 function displayFacture(facture) {
-    // Numéro de la facture
-    document.querySelectorAll('[data-facture-numero], .facture-numero, h1, h2').forEach(el => {
-        if (el.textContent.includes('Facture') || el.classList.contains('facture-numero')) {
-            el.textContent = `Facture FAC-${String(facture.id).padStart(4, '0')}`;
-        }
-    });
+    // Numéro de la facture dans le fil d'ariane
+    const breadcrumbNumero = document.getElementById('facture-numero');
+    if (breadcrumbNumero) {
+        breadcrumbNumero.textContent = facture.numeroFacture || `FAC-${String(facture.id).padStart(4, '0')}`;
+    }
+
+    // Informations de la facture
+    const infoNumero = document.getElementById('info-numero');
+    if (infoNumero) {
+        infoNumero.textContent = facture.numeroFacture || `FAC-${String(facture.id).padStart(4, '0')}`;
+    }
+
+    const infoDate = document.getElementById('info-date');
+    if (infoDate) {
+        infoDate.textContent = Utils.formatDate(facture.dateFacture);
+    }
+
+    const infoPaiement = document.getElementById('info-paiement');
+    if (infoPaiement) {
+        const modePaiementLabels = {
+            'ESPECES': 'Espèces',
+            'CHEQUE': 'Chèque',
+            'VIREMENT': 'Virement bancaire',
+            'CB': 'Carte bancaire',
+            'PRELEVEMENT': 'Prélèvement'
+        };
+        infoPaiement.textContent = modePaiementLabels[facture.modePaiement] || facture.modePaiement || '--';
+    }
 
     // Statut
-    const statusEl = document.querySelector('[data-facture-statut], .facture-statut');
-    if (statusEl) {
-        statusEl.innerHTML = Utils.getFactureStatusBadge(facture.statut);
+    const infoStatut = document.getElementById('info-statut');
+    if (infoStatut) {
+        const statusConfig = {
+            'NON_PAYEE': { text: 'Non payée', class: 'bg-yellow-100 text-yellow-800' },
+            'PARTIELLEMENT_PAYEE': { text: 'Partiellement payée', class: 'bg-orange-100 text-orange-800' },
+            'PAYEE': { text: 'Payée', class: 'bg-green-100 text-green-800' },
+            'ANNULEE': { text: 'Annulée', class: 'bg-red-100 text-red-800' }
+        };
+        const config = statusConfig[facture.statut] || { text: facture.statut, class: 'bg-gray-100 text-gray-800' };
+        infoStatut.textContent = config.text;
+        infoStatut.className = `inline-flex rounded-full px-2 py-1 text-xs font-semibold ${config.class}`;
     }
 
     // Informations client
     displayClientInfo(facture.client);
-
-    // Dates
-    displayDates(facture);
 
     // Lignes de la facture
     displayLignes(facture.lignes || []);
 
     // Totaux
     displayTotals(facture);
-
-    // Notes
-    const notesEl = document.querySelector('[data-facture-notes], .facture-notes, .notes');
-    if (notesEl) {
-        notesEl.textContent = facture.notes || 'Aucune note';
-    }
-
-    // Référence devis si converti
-    if (facture.devis) {
-        const devisRef = document.querySelector('[data-devis-reference], .devis-reference');
-        if (devisRef) {
-            devisRef.innerHTML = `
-                <span class="text-gray-600">Créée depuis le devis</span>
-                <a href="écran_détail_d'un_devis.html?id=${facture.devis.id}" class="text-primary hover:underline">
-                    DEV-${String(facture.devis.id).padStart(4, '0')}
-                </a>
-            `;
-        }
-    }
 }
 
 /**
@@ -124,34 +132,27 @@ function displayClientInfo(client) {
     if (!client) return;
 
     // Nom
-    document.querySelectorAll('[data-client-nom], .client-nom').forEach(el => {
-        el.textContent = client.nom;
-    });
+    const clientName = document.getElementById('client-name');
+    if (clientName) {
+        clientName.textContent = client.nom || '--';
+    }
 
     // Email
-    document.querySelectorAll('[data-client-email], .client-email').forEach(el => {
-        el.textContent = client.email;
-    });
+    const clientEmail = document.getElementById('client-email');
+    if (clientEmail) {
+        clientEmail.textContent = client.email || '--';
+    }
 
     // Téléphone
-    document.querySelectorAll('[data-client-telephone], .client-telephone').forEach(el => {
-        el.textContent = client.telephone || 'Non renseigné';
-    });
+    const clientPhone = document.getElementById('client-phone');
+    if (clientPhone) {
+        clientPhone.textContent = client.telephone || 'Non renseigné';
+    }
 
     // Adresse
-    document.querySelectorAll('[data-client-adresse], .client-adresse').forEach(el => {
-        el.textContent = client.adresse || 'Non renseignée';
-    });
-
-    // Bloc info client
-    const clientBlock = document.querySelector('.client-info, .client-block');
-    if (clientBlock) {
-        clientBlock.innerHTML = `
-            <p class="font-semibold text-gray-900 dark:text-white">${escapeHtml(client.nom)}</p>
-            <p class="text-gray-600 dark:text-gray-400">${escapeHtml(client.email)}</p>
-            <p class="text-gray-600 dark:text-gray-400">${escapeHtml(client.telephone || '')}</p>
-            <p class="text-gray-600 dark:text-gray-400">${escapeHtml(client.adresse || '')}</p>
-        `;
+    const clientAddress = document.getElementById('client-address');
+    if (clientAddress) {
+        clientAddress.textContent = client.adresse || 'Non renseignée';
     }
 }
 
@@ -193,13 +194,13 @@ function displayDates(facture) {
  * Affiche les lignes de la facture
  */
 function displayLignes(lignes) {
-    const tbody = document.querySelector('table tbody, .lignes-container');
+    const tbody = document.getElementById('lines-table-body') || document.querySelector('table tbody');
     if (!tbody) return;
 
-    if (lignes.length === 0) {
+    if (!lignes || lignes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                <td colspan="5" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">
                     Aucune ligne dans cette facture
                 </td>
             </tr>
@@ -207,19 +208,20 @@ function displayLignes(lignes) {
         return;
     }
 
-    tbody.innerHTML = lignes.map((ligne, index) => {
-        const totalLigne = ligne.quantite * ligne.prixUnitaireHT;
+    tbody.innerHTML = lignes.map((ligne) => {
+        const produitNom = ligne.produit ? ligne.produit.nom : 'Produit inconnu';
+        const totalLigne = (ligne.quantite || 0) * (ligne.prixUnitaireHT || 0);
+        const tva = ligne.tva || 20;
+        
         return `
             <tr class="border-b border-gray-200 dark:border-gray-700">
-                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${index + 1}</td>
                 <td class="px-4 py-3">
-                    <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(ligne.designation)}</p>
-                    ${ligne.produit ? `<p class="text-sm text-gray-500">${escapeHtml(ligne.produit.categorie || '')}</p>` : ''}
+                    <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(produitNom)}</p>
                 </td>
-                <td class="px-4 py-3 text-sm text-center text-gray-900 dark:text-white">${ligne.quantite}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">${Utils.formatCurrency(ligne.prixUnitaireHT)}</td>
-                <td class="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">${ligne.tauxTVA || 20}%</td>
-                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(totalLigne)}</td>
+                <td class="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">${ligne.quantite}</td>
+                <td class="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">${Utils.formatCurrency(ligne.prixUnitaireHT)}</td>
+                <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">${tva}%</td>
+                <td class="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(totalLigne)}</td>
             </tr>
         `;
     }).join('');
@@ -230,19 +232,22 @@ function displayLignes(lignes) {
  */
 function displayTotals(facture) {
     // Total HT
-    document.querySelectorAll('[data-total-ht], .total-ht').forEach(el => {
-        el.textContent = Utils.formatCurrency(facture.montantHT || 0);
-    });
+    const totalHt = document.getElementById('total-ht');
+    if (totalHt) {
+        totalHt.textContent = Utils.formatCurrency(facture.montantHT || 0);
+    }
 
     // Total TVA
-    document.querySelectorAll('[data-total-tva], .total-tva').forEach(el => {
-        el.textContent = Utils.formatCurrency(facture.montantTVA || 0);
-    });
+    const totalTva = document.getElementById('total-tva');
+    if (totalTva) {
+        totalTva.textContent = Utils.formatCurrency(facture.montantTVA || 0);
+    }
 
     // Total TTC
-    document.querySelectorAll('[data-total-ttc], .total-ttc').forEach(el => {
-        el.textContent = Utils.formatCurrency(facture.montantTTC || 0);
-    });
+    const totalTtc = document.getElementById('total-ttc');
+    if (totalTtc) {
+        totalTtc.textContent = Utils.formatCurrency(facture.montantTTC || 0);
+    }
 }
 
 /**
@@ -251,31 +256,11 @@ function displayTotals(facture) {
 function updateActionButtons() {
     const statut = factureData?.statut;
 
-    document.querySelectorAll('button').forEach(btn => {
-        const text = btn.textContent.toLowerCase();
-        const icon = btn.querySelector('.material-symbols-outlined');
-        const iconText = icon?.textContent || '';
-
-        // Bouton modifier - seulement si brouillon
-        if (text.includes('modifier') || iconText === 'edit') {
-            btn.style.display = statut === 'BROUILLON' ? '' : 'none';
-        }
-
-        // Bouton envoyer - seulement si brouillon
-        if (text.includes('envoyer') || iconText === 'send') {
-            btn.style.display = statut === 'BROUILLON' ? '' : 'none';
-        }
-
-        // Bouton payer - seulement si envoyée ou en retard
-        if (text.includes('payer') || text.includes('payé') || iconText === 'paid') {
-            btn.style.display = (statut === 'ENVOYEE' || statut === 'EN_RETARD') ? '' : 'none';
-        }
-
-        // Bouton annuler - si pas déjà annulée ou payée
-        if (text.includes('annuler') || iconText === 'block') {
-            btn.style.display = (statut !== 'ANNULEE' && statut !== 'PAYEE') ? '' : 'none';
-        }
-    });
+    // Bouton modifier
+    const btnEdit = document.getElementById('btn-edit');
+    if (btnEdit) {
+        btnEdit.style.display = (statut === 'NON_PAYEE') ? '' : 'none';
+    }
 }
 
 /**

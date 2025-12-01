@@ -25,14 +25,22 @@ function setupEventListeners() {
     });
 
     // Recherche
-    const searchInput = document.querySelector('input[placeholder*="Rechercher"]');
+    const searchInput = document.querySelector('#search-input, input[placeholder*="Rechercher"]');
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
             filterDevis(e.target.value);
         }, 300));
     }
 
-    // Filtres de statut
+    // Select de statut natif
+    const statusSelect = document.getElementById('status-filter');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+            filterByStatus(e.target.value);
+        });
+    }
+
+    // Filtres de statut (boutons)
     setupStatusFilters();
 }
 
@@ -127,7 +135,7 @@ function renderDevis(devis) {
     tbody.innerHTML = devis.map(d => `
         <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
             <td class="px-4 py-3">
-                <span class="font-medium text-gray-900 dark:text-white">DEV-${String(d.id).padStart(4, '0')}</span>
+                <span class="font-medium text-gray-900 dark:text-white">${d.numeroDevis || `DEV-${String(d.id).padStart(4, '0')}`}</span>
             </td>
             <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
@@ -137,9 +145,9 @@ function renderDevis(devis) {
                     <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(d.client?.nom || 'Client inconnu')}</span>
                 </div>
             </td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(d.dateCreation)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${d.dateValidite ? Utils.formatDate(d.dateValidite) : '-'}</td>
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(d.montantTTC)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(d.dateDevis)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">-</td>
+            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(d.totalTTC)}</td>
             <td class="px-4 py-3">${Utils.getDevisStatusBadge(d.statut)}</td>
             <td class="px-4 py-3">
                 <div class="flex items-center justify-end gap-1">
@@ -359,3 +367,12 @@ window.DevisPage = {
     filterDevis,
     filterByStatus
 };
+
+// Exposer les fonctions globalement pour le HTML onclick
+window.viewDevis = viewDevis;
+window.editDevis = editDevis;
+window.accepterDevis = accepterDevis;
+window.refuserDevis = refuserDevis;
+window.convertirDevis = convertirDevis;
+window.deleteDevis = deleteDevis;
+window.filterByStatus = filterByStatus;

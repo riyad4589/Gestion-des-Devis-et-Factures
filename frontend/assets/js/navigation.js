@@ -163,6 +163,11 @@ function toggleTheme() {
     }
 }
 
+// Fonction pour naviguer directement vers une URL
+function goTo(url) {
+    window.location.href = url;
+}
+
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
@@ -173,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.Navigation = {
     ROUTES,
     navigateTo,
+    goTo,
     getCurrentPage,
     getUrlParam,
     goBack,

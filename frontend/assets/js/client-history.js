@@ -295,10 +295,21 @@ function viewFacture(id) {
     window.location.href = `écran_détail_facture.html?id=${id}`;
 }
 
+/**
+ * Retourne l'ID du client actuel (utilisé dans le HTML)
+ */
+function getClientId() {
+    return clientId;
+}
+
 // Export pour utilisation globale
 window.ClientHistory = {
     loadClientHistory,
     viewDevis,
     viewFacture,
-    switchTab
+    switchTab,
+    getClientId
 };
+
+// Exposer getClientId globalement pour le HTML
+window.getClientId = getClientId;

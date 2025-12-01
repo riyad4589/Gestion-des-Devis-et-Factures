@@ -39,13 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
  * Met à jour le titre de la page selon le mode
  */
 function updatePageTitle() {
-    const title = document.querySelector('h1, .page-title');
+    const title = document.getElementById('page-title') || document.querySelector('h1, .page-title');
     if (title) {
         title.textContent = isEditMode ? 'Modifier le produit' : 'Nouveau produit';
     }
 
     // Mettre à jour le fil d'Ariane si présent
-    const breadcrumb = document.querySelector('.breadcrumb-current, nav span:last-child');
+    const breadcrumb = document.getElementById('breadcrumb-action') || document.querySelector('.breadcrumb-current, nav span:last-child');
     if (breadcrumb) {
         breadcrumb.textContent = isEditMode ? 'Modifier le produit' : 'Nouveau produit';
     }
@@ -74,6 +74,8 @@ async function loadProduit() {
     try {
         const produit = await API.Produits.getById(produitId);
         populateForm(produit);
+        // Mettre à jour le titre après le chargement
+        updatePageTitle();
     } catch (error) {
         console.error('Erreur lors du chargement du produit:', error);
         Utils.showToast('Produit introuvable', 'error');

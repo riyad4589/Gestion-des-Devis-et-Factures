@@ -3,8 +3,18 @@
  * Gère l'affichage des statistiques et des dernières activités
  */
 
+let dashboardData = {
+    clients: [],
+    produits: [],
+    devis: [],
+    factures: []
+};
+
+let currentTab = 'devis';
+
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardData();
+    setupTabs();
 });
 
 /**
@@ -20,13 +30,13 @@ async function loadDashboardData() {
             API.Factures.getAll()
         ]);
 
+        dashboardData = { clients, produits, devis, factures };
+
         // Mettre à jour les statistiques
         updateStats(clients, produits, devis, factures);
         
-        // Charger les derniers éléments
-        loadRecentDevis(devis);
-        loadRecentFactures(factures);
-        loadRecentClients(clients);
+        // Afficher le tableau selon l'onglet actif
+        showTabContent(currentTab);
         
     } catch (error) {
         console.error('Erreur lors du chargement du dashboard:', error);
@@ -41,8 +51,8 @@ function updateStats(clients, produits, devis, factures) {
     // Calculer les statistiques
     const nbClients = clients.length;
     const nbProduits = produits.filter(p => p.actif).length;
-    const nbDevisEnCours = devis.filter(d => d.statut === 'EN_COURS' || d.statut === 'ENVOYE').length;
-    const facturesNonPayees = factures.filter(f => f.statutPaiement === 'EN_ATTENTE' || f.statutPaiement === 'EN_RETARD');
+    const nbDevisEnCours = devis.filter(d => d.statut === 'EN_ATTENTE' || d.statut === 'ENVOYE' || d.statut === 'BROUILLON').length;
+    const facturesNonPayees = factures.filter(f => f.statut === 'ENVOYEE' || f.statut === 'EN_RETARD' || f.statut === 'EN_ATTENTE');
     const nbFacturesNonPayees = facturesNonPayees.length;
     
     // Calculer le chiffre d'affaires du mois
@@ -52,171 +62,41 @@ function updateStats(clients, produits, devis, factures) {
     
     const caMonth = factures
         .filter(f => {
-            const dateFacture = new Date(f.dateEmission);
+            const dateFacture = new Date(f.dateCreation || f.dateEmission);
             return dateFacture.getMonth() === currentMonth && 
                    dateFacture.getFullYear() === currentYear &&
-                   f.statutPaiement === 'PAYEE';
+                   f.statut === 'PAYEE';
         })
         .reduce((sum, f) => sum + (f.montantTTC || 0), 0);
 
-    // Mettre à jour les éléments du DOM
-    const statsElements = document.querySelectorAll('.text-2xl.font-bold');
-    if (statsElements.length >= 5) {
-        // Stats: Clients, Produits, Devis en cours, Factures non payées, CA du mois
-        const statsData = [
-            nbClients.toLocaleString('fr-FR'),
-            nbProduits.toLocaleString('fr-FR'),
-            nbDevisEnCours.toLocaleString('fr-FR'),
-            nbFacturesNonPayees.toLocaleString('fr-FR'),
-            Utils.formatCurrency(caMonth)
-        ];
-        
-        statsElements.forEach((el, index) => {
-            if (statsData[index]) {
-                el.textContent = statsData[index];
-            }
-        });
-    }
-
-    // Alternative: chercher par texte du label
-    updateStatByLabel('Nombre de clients', nbClients.toLocaleString('fr-FR'));
-    updateStatByLabel('Nombre de produits', nbProduits.toLocaleString('fr-FR'));
-    updateStatByLabel('Devis en cours', nbDevisEnCours.toLocaleString('fr-FR'));
-    updateStatByLabel('Factures non payées', nbFacturesNonPayees.toLocaleString('fr-FR'));
-    updateStatByLabel("Chiffre d'affaires", Utils.formatCurrency(caMonth));
-}
-
-/**
- * Met à jour une statistique par son label
- */
-function updateStatByLabel(label, value) {
-    const labels = document.querySelectorAll('p');
-    labels.forEach(labelEl => {
-        if (labelEl.textContent.toLowerCase().includes(label.toLowerCase())) {
-            const parent = labelEl.closest('.flex.flex-col') || labelEl.parentElement;
-            const valueEl = parent.querySelector('.text-2xl, .text-3xl, .font-bold');
-            if (valueEl && valueEl !== labelEl) {
-                valueEl.textContent = value;
-            }
-        }
-    });
-}
-
-/**
- * Charge les derniers devis dans le tableau
- */
-function loadRecentDevis(devis) {
-    // Trier par date décroissante et prendre les 5 derniers
-    const recentDevis = [...devis]
-        .sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
-        .slice(0, 5);
-
-    // Trouver le tableau des devis
-    const tbody = findTableBody('devis');
-    if (!tbody) return;
-
-    // Générer le HTML
-    tbody.innerHTML = recentDevis.map(d => `
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">${d.numero || 'DEV-' + d.id}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-white">${d.clientNom || 'Client'}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">${Utils.formatCurrency(d.montantTTC)}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm">${Utils.getDevisStatutBadge(d.statut)}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                <a href="écran_détail_d'un_devis.html?id=${d.id}" class="text-primary hover:text-primary/80">Voir</a>
-            </td>
-        </tr>
-    `).join('');
-}
-
-/**
- * Charge les dernières factures dans le tableau
- */
-function loadRecentFactures(factures) {
-    // Trier par date décroissante et prendre les 5 dernières
-    const recentFactures = [...factures]
-        .sort((a, b) => new Date(b.dateEmission) - new Date(a.dateEmission))
-        .slice(0, 5);
-
-    // Trouver le tableau des factures (deuxième tableau ou celui avec "facture" dans le header)
-    const tbody = findTableBody('factures');
-    if (!tbody) return;
-
-    // Générer le HTML
-    tbody.innerHTML = recentFactures.map(f => `
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400">${f.numero || 'FAC-' + f.id}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-white">${f.clientNom || 'Client'}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">${Utils.formatCurrency(f.montantTTC)}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm">${Utils.getFactureStatutBadge(f.statutPaiement)}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                <a href="écran_détail_facture.html?id=${f.id}" class="text-primary hover:text-primary/80">Voir</a>
-            </td>
-        </tr>
-    `).join('');
-}
-
-/**
- * Charge les derniers clients ajoutés
- */
-function loadRecentClients(clients) {
-    // Trier par date de création décroissante
-    const recentClients = [...clients]
-        .sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
-        .slice(0, 5);
-
-    // Trouver le tableau des clients
-    const tbody = findTableBody('clients');
-    if (!tbody) return;
-
-    // Générer le HTML
-    tbody.innerHTML = recentClients.map(c => `
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${c.nom}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">${c.email}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">${Utils.formatDate(c.dateCreation)}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                <a href="écran_historique_client.html?id=${c.id}" class="text-primary hover:text-primary/80">Voir</a>
-            </td>
-        </tr>
-    `).join('');
-}
-
-/**
- * Trouve le tbody d'un tableau par type
- */
-function findTableBody(type) {
-    const tables = document.querySelectorAll('table');
+    // Mettre à jour les éléments du DOM par ID
+    const statClients = document.getElementById('stat-clients');
+    if (statClients) statClients.textContent = nbClients.toLocaleString('fr-FR');
     
-    for (const table of tables) {
-        const thead = table.querySelector('thead');
-        if (thead) {
-            const headerText = thead.textContent.toLowerCase();
-            
-            if (type === 'devis' && (headerText.includes('devis') || headerText.includes('id devis'))) {
-                return table.querySelector('tbody');
-            }
-            if (type === 'factures' && headerText.includes('facture')) {
-                return table.querySelector('tbody');
-            }
-            if (type === 'clients' && headerText.includes('client') && !headerText.includes('devis')) {
-                return table.querySelector('tbody');
-            }
-        }
-    }
+    const statProduits = document.getElementById('stat-produits');
+    if (statProduits) statProduits.textContent = nbProduits.toLocaleString('fr-FR');
     
-    // Fallback: retourner le premier tbody trouvé
-    return tables[0]?.querySelector('tbody');
+    const statDevis = document.getElementById('stat-devis');
+    if (statDevis) statDevis.textContent = nbDevisEnCours.toLocaleString('fr-FR');
+    
+    const statFactures = document.getElementById('stat-factures');
+    if (statFactures) statFactures.textContent = nbFacturesNonPayees.toLocaleString('fr-FR');
+    
+    const statCA = document.getElementById('stat-ca');
+    if (statCA) statCA.textContent = Utils.formatCurrency(caMonth);
 }
 
 /**
- * Gère le clic sur les onglets du dashboard
+ * Configure les onglets
  */
 function setupTabs() {
     const tabs = document.querySelectorAll('[data-tab]');
     tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
+            
+            const tabType = tab.dataset.tab;
+            currentTab = tabType;
             
             // Supprimer l'état actif des autres onglets
             tabs.forEach(t => {
@@ -228,18 +108,125 @@ function setupTabs() {
             tab.classList.remove('border-b-transparent', 'text-gray-500');
             tab.classList.add('border-b-primary', 'text-primary');
             
-            // Charger les données correspondantes
-            const tabType = tab.dataset.tab;
-            if (tabType === 'devis') {
-                loadRecentDevisTab();
-            } else if (tabType === 'factures') {
-                loadRecentFacturesTab();
-            } else if (tabType === 'clients') {
-                loadRecentClientsTab();
-            }
+            // Afficher le contenu correspondant
+            showTabContent(tabType);
         });
     });
 }
 
-// Initialiser les onglets
-document.addEventListener('DOMContentLoaded', setupTabs);
+/**
+ * Affiche le contenu de l'onglet
+ */
+function showTabContent(tabType) {
+    const tableHeader = document.getElementById('table-header');
+    const tableBody = document.getElementById('table-body');
+    
+    if (!tableHeader || !tableBody) return;
+    
+    if (tabType === 'devis') {
+        tableHeader.innerHTML = `
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">N° Devis</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Client</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Montant</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Statut</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Action</th>
+        `;
+        renderDevisTable(tableBody);
+    } else if (tabType === 'factures') {
+        tableHeader.innerHTML = `
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">N° Facture</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Client</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Montant</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Statut</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Action</th>
+        `;
+        renderFacturesTable(tableBody);
+    } else if (tabType === 'clients') {
+        tableHeader.innerHTML = `
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Nom</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Email</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Téléphone</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date d'ajout</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Action</th>
+        `;
+        renderClientsTable(tableBody);
+    }
+}
+
+/**
+ * Affiche le tableau des devis
+ */
+function renderDevisTable(tbody) {
+    const recentDevis = [...dashboardData.devis]
+        .sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
+        .slice(0, 5);
+    
+    if (recentDevis.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucun devis</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = recentDevis.map(d => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">DEV-${String(d.id).padStart(4, '0')}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${d.client?.nom || 'Client inconnu'}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatCurrency(d.montantTTC)}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm">${Utils.getDevisStatutBadge(d.statut)}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm">
+                <a href="écran_détail_d'un_devis.html?id=${d.id}" class="text-primary hover:text-primary/80 font-medium">Voir</a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Affiche le tableau des factures
+ */
+function renderFacturesTable(tbody) {
+    const recentFactures = [...dashboardData.factures]
+        .sort((a, b) => new Date(b.dateCreation || b.dateEmission) - new Date(a.dateCreation || a.dateEmission))
+        .slice(0, 5);
+    
+    if (recentFactures.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune facture</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = recentFactures.map(f => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">FAC-${String(f.id).padStart(4, '0')}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${f.client?.nom || 'Client inconnu'}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatCurrency(f.montantTTC)}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm">${Utils.getFactureStatutBadge(f.statut)}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm">
+                <a href="écran_détail_facture.html?id=${f.id}" class="text-primary hover:text-primary/80 font-medium">Voir</a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Affiche le tableau des clients
+ */
+function renderClientsTable(tbody) {
+    const recentClients = [...dashboardData.clients]
+        .sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
+        .slice(0, 5);
+    
+    if (recentClients.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucun client</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = recentClients.map(c => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${c.nom}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${c.email}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${c.telephone || '-'}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(c.dateCreation)}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm">
+                <a href="écran_historique_client.html?id=${c.id}" class="text-primary hover:text-primary/80 font-medium">Voir</a>
+            </td>
+        </tr>
+    `).join('');
+}

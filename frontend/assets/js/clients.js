@@ -16,29 +16,167 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function setupEventListeners() {
     // Bouton nouveau client
-    const newClientBtn = document.querySelector('button');
-    if (newClientBtn && newClientBtn.textContent.includes('Nouveau Client')) {
-        newClientBtn.addEventListener('click', () => {
-            window.location.href = 'modification_client.html';
-        });
-    }
+    document.querySelectorAll('button').forEach(btn => {
+        if (btn.textContent.includes('Nouveau') && btn.textContent.includes('Client')) {
+            btn.addEventListener('click', () => {
+                window.location.href = 'modification_client.html';
+            });
+        }
+    });
 
     // Recherche
-    const searchInput = document.querySelector('input[placeholder*="Rechercher"]');
+    const searchInput = document.getElementById('search-input') || document.querySelector('input[placeholder*="Rechercher"]');
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
             filterClients(e.target.value);
         }, 300));
     }
 
-    // Filtres de statut
-    const statusFilter = document.querySelector('button:has(p:contains("Statut"))') || 
-                         document.querySelector('[data-filter="status"]');
-    if (statusFilter) {
-        statusFilter.addEventListener('click', () => {
-            showStatusFilterMenu(statusFilter);
+    // Select de statut natif (si présent)
+    const statusSelect = document.getElementById('status-filter');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            if (value === 'active') {
+                filterByStatus('active');
+            } else if (value === 'inactive') {
+                filterByStatus('inactive');
+            } else {
+                filterByStatus('all');
+            }
         });
     }
+
+    // Dropdown de filtre de statut (boutons)
+    setupStatusDropdown();
+    
+    // Dropdown de tri (boutons)
+    setupSortDropdown();
+}
+
+/**
+ * Configure le dropdown de filtre par statut
+ */
+function setupStatusDropdown() {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        const text = btn.textContent.toLowerCase();
+        if (text.includes('statut')) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleDropdown(btn, 'status');
+            });
+        }
+    });
+}
+
+/**
+ * Configure le dropdown de tri
+ */
+function setupSortDropdown() {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        const text = btn.textContent.toLowerCase();
+        if (text.includes('trier')) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleDropdown(btn, 'sort');
+            });
+        }
+    });
+}
+
+/**
+ * Toggle le dropdown
+ */
+function toggleDropdown(button, type) {
+    // Fermer tous les dropdowns existants
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.remove());
+    
+    const existingMenu = document.getElementById(`${type}DropdownMenu`);
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const menu = document.createElement('div');
+    menu.id = `${type}DropdownMenu`;
+    menu.className = 'dropdown-menu absolute mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50';
+    
+    if (type === 'status') {
+        menu.innerHTML = `
+            <button onclick="applyStatusFilter('all')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">Tous</button>
+            <button onclick="applyStatusFilter('active')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Actifs</button>
+            <button onclick="applyStatusFilter('inactive')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg">Inactifs</button>
+        `;
+    } else if (type === 'sort') {
+        menu.innerHTML = `
+            <button onclick="applySortFilter('date')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">Date</button>
+            <button onclick="applySortFilter('nom')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Nom</button>
+            <button onclick="applySortFilter('email')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg">Email</button>
+        `;
+    }
+
+    button.parentElement.style.position = 'relative';
+    button.parentElement.appendChild(menu);
+
+    // Fermer le menu au clic ailleurs
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target) && e.target !== button) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 0);
+}
+
+/**
+ * Applique le filtre de statut
+ */
+function applyStatusFilter(status) {
+    filterByStatus(status);
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.remove());
+    
+    // Mettre à jour le texte du bouton
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        if (btn.textContent.toLowerCase().includes('statut')) {
+            const statusText = status === 'all' ? 'Tous' : (status === 'active' ? 'Actifs' : 'Inactifs');
+            btn.querySelector('p').textContent = 'Statut: ' + statusText;
+        }
+    });
+}
+
+/**
+ * Applique le filtre de tri
+ */
+function applySortFilter(sortBy) {
+    sortClients(sortBy);
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.remove());
+    
+    // Mettre à jour le texte du bouton
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        if (btn.textContent.toLowerCase().includes('trier')) {
+            const sortText = sortBy === 'date' ? 'Date' : (sortBy === 'nom' ? 'Nom' : 'Email');
+            btn.querySelector('p').textContent = 'Trier par: ' + sortText;
+        }
+    });
+}
+
+/**
+ * Trie les clients
+ */
+function sortClients(sortBy) {
+    if (sortBy === 'nom') {
+        filteredClients.sort((a, b) => a.nom.localeCompare(b.nom));
+    } else if (sortBy === 'email') {
+        filteredClients.sort((a, b) => a.email.localeCompare(b.email));
+    } else {
+        filteredClients.sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation));
+    }
+    renderClients(filteredClients);
 }
 
 /**
@@ -263,3 +401,11 @@ window.ClientsPage = {
     filterClients,
     filterByStatus
 };
+
+// Exposer les fonctions globalement pour le HTML onclick
+window.viewClient = viewClient;
+window.editClient = editClient;
+window.deleteClient = deleteClient;
+window.filterByStatus = filterByStatus;
+window.applyStatusFilter = applyStatusFilter;
+window.applySortFilter = applySortFilter;

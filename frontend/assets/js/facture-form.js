@@ -57,9 +57,15 @@ async function init() {
  * Met à jour le titre de la page
  */
 function updatePageTitle() {
-    const title = document.querySelector('h1, .page-title');
+    const title = document.getElementById('page-title') || document.querySelector('h1, .page-title');
     if (title) {
         title.textContent = isEditMode ? 'Modifier la facture' : 'Nouvelle facture';
+    }
+    
+    // Mettre à jour le fil d'Ariane si présent
+    const breadcrumb = document.getElementById('breadcrumb-action') || document.querySelector('.breadcrumb-current, nav span:last-child');
+    if (breadcrumb) {
+        breadcrumb.textContent = isEditMode ? 'Modifier la facture' : 'Nouvelle facture';
     }
 }
 

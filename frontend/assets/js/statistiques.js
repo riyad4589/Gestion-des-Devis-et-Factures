@@ -3,6 +3,9 @@
  * Affiche les graphiques et KPIs de l'application
  */
 
+let revenueChart = null;
+let statusChart = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     loadStatistiques();
     setupEventListeners();
@@ -12,7 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
  * Configure les écouteurs d'événements
  */
 function setupEventListeners() {
-    // Filtres de période
+    // Filtre de période (select)
+    const periodSelect = document.getElementById('period-filter');
+    if (periodSelect) {
+        periodSelect.addEventListener('change', (e) => {
+            loadStatistiques(e.target.value);
+        });
+    }
+
+    // Filtres de période (boutons)
     document.querySelectorAll('[data-period], .period-filter').forEach(btn => {
         btn.addEventListener('click', () => {
             const period = btn.dataset.period;
@@ -27,14 +38,6 @@ function setupEventListeners() {
             btn.classList.add('bg-primary', 'text-white');
         });
     });
-
-    // Sélecteur de date personnalisée
-    const dateRange = document.querySelector('[data-date-range], .date-range');
-    if (dateRange) {
-        dateRange.addEventListener('change', () => {
-            // Charger les stats pour la période personnalisée
-        });
-    }
 }
 
 /**
@@ -249,155 +252,140 @@ function calculateTopProduits(produits, factures) {
  * Affiche les KPIs
  */
 function displayKPIs(apiStats, calculatedStats) {
-    // Chiffre d'affaires
-    setElementValue('[data-kpi="ca"], .kpi-ca', Utils.formatCurrency(calculatedStats.chiffreAffaires));
+    // Mettre à jour les éléments par ID
+    const statCA = document.getElementById('stat-ca');
+    if (statCA) statCA.textContent = Utils.formatCurrency(calculatedStats.chiffreAffaires);
     
-    // Montant en attente
-    setElementValue('[data-kpi="attente"], .kpi-attente', Utils.formatCurrency(calculatedStats.montantEnAttente));
+    const statCATrend = document.getElementById('stat-ca-trend');
+    if (statCATrend) statCATrend.textContent = '+' + calculatedStats.tauxConversion + '% ce mois';
     
-    // Total clients
-    setElementValue('[data-kpi="clients"], .kpi-clients', calculatedStats.totalClients);
+    const statFacturesPayees = document.getElementById('stat-factures-payees');
+    if (statFacturesPayees) statFacturesPayees.textContent = calculatedStats.facturesPayees;
     
-    // Total devis
-    setElementValue('[data-kpi="devis"], .kpi-devis', calculatedStats.totalDevis);
+    const statFacturesTotal = document.getElementById('stat-factures-total');
+    if (statFacturesTotal) statFacturesTotal.textContent = 'sur ' + calculatedStats.totalFactures + ' factures';
     
-    // Total factures
-    setElementValue('[data-kpi="factures"], .kpi-factures', calculatedStats.totalFactures);
+    const statDevisAcceptes = document.getElementById('stat-devis-acceptes');
+    if (statDevisAcceptes) statDevisAcceptes.textContent = calculatedStats.devisAccepte;
     
-    // Taux de conversion
-    setElementValue('[data-kpi="conversion"], .kpi-conversion', `${calculatedStats.tauxConversion}%`);
+    const statDevisTotal = document.getElementById('stat-devis-total');
+    if (statDevisTotal) statDevisTotal.textContent = 'sur ' + calculatedStats.totalDevis + ' devis';
     
-    // Factures payées
-    setElementValue('[data-kpi="payees"], .kpi-payees', calculatedStats.facturesPayees);
+    const statNouveauxClients = document.getElementById('stat-nouveaux-clients');
+    if (statNouveauxClients) statNouveauxClients.textContent = calculatedStats.nouveauxClients;
     
-    // Factures en retard
-    setElementValue('[data-kpi="retard"], .kpi-retard', calculatedStats.facturesEnRetard);
-    
-    // Produits
-    setElementValue('[data-kpi="produits"], .kpi-produits', calculatedStats.totalProduits);
-    
-    // Mettre à jour les éléments basés sur le contenu
-    document.querySelectorAll('.stat-card, .kpi-card, .bg-white').forEach(card => {
-        const label = card.querySelector('.stat-label, .kpi-label, p, span')?.textContent?.toLowerCase() || '';
-        const value = card.querySelector('.stat-value, .kpi-value, h2, h3');
-        
-        if (!value) return;
-        
-        if (label.includes('chiffre') || label.includes('revenus')) {
-            value.textContent = Utils.formatCurrency(calculatedStats.chiffreAffaires);
-        } else if (label.includes('attente')) {
-            value.textContent = Utils.formatCurrency(calculatedStats.montantEnAttente);
-        } else if (label.includes('client')) {
-            value.textContent = calculatedStats.totalClients;
-        } else if (label.includes('devis') && !label.includes('facture')) {
-            value.textContent = calculatedStats.totalDevis;
-        } else if (label.includes('facture')) {
-            value.textContent = calculatedStats.totalFactures;
-        } else if (label.includes('conversion')) {
-            value.textContent = `${calculatedStats.tauxConversion}%`;
-        }
-    });
+    const statClientsTotal = document.getElementById('stat-clients-total');
+    if (statClientsTotal) statClientsTotal.textContent = calculatedStats.totalClients + ' clients au total';
 }
 
 /**
  * Affiche les graphiques
  */
 function displayCharts(stats) {
-    // Graphique évolution mensuelle
-    displayEvolutionChart(stats.evolutionMensuelle);
+    // Graphique évolution du chiffre d'affaires avec Chart.js
+    displayRevenueChart(stats.evolutionMensuelle);
     
-    // Graphique répartition devis
-    displayDevisChart(stats);
-    
-    // Graphique répartition factures
-    displayFacturesChart(stats);
+    // Graphique répartition des statuts avec Chart.js
+    displayStatusChart(stats);
 }
 
 /**
- * Affiche le graphique d'évolution
+ * Affiche le graphique d'évolution du chiffre d'affaires
  */
-function displayEvolutionChart(data) {
-    const container = document.querySelector('[data-chart="evolution"], #evolution-chart, .evolution-chart');
-    if (!container) return;
+function displayRevenueChart(data) {
+    const canvas = document.getElementById('revenue-chart');
+    if (!canvas) return;
 
-    // Créer un graphique simple en barres
-    const maxMontant = Math.max(...data.map(d => d.montant));
-    
-    container.innerHTML = `
-        <div class="flex items-end justify-between h-48 gap-2">
-            ${data.map(d => `
-                <div class="flex-1 flex flex-col items-center">
-                    <div class="w-full bg-primary/20 rounded-t" style="height: ${maxMontant > 0 ? (d.montant / maxMontant * 100) : 0}%">
-                        <div class="w-full h-full bg-primary rounded-t opacity-80 hover:opacity-100 transition-opacity"></div>
-                    </div>
-                    <span class="text-xs text-gray-500 mt-2">${d.label}</span>
-                </div>
-            `).join('')}
-        </div>
-        <div class="text-center mt-4 text-sm text-gray-500">
-            Évolution du chiffre d'affaires sur 6 mois
-        </div>
-    `;
+    // Détruire le graphique existant si présent
+    if (revenueChart) {
+        revenueChart.destroy();
+    }
+
+    const ctx = canvas.getContext('2d');
+    revenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.label),
+            datasets: [{
+                label: 'Chiffre d\'affaires (DH)',
+                data: data.map(d => d.montant),
+                backgroundColor: 'rgba(17, 82, 212, 0.7)',
+                borderColor: 'rgba(17, 82, 212, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('fr-MA') + ' DH';
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 /**
- * Affiche le graphique de répartition des devis
+ * Affiche le graphique de répartition des statuts
  */
-function displayDevisChart(stats) {
-    const container = document.querySelector('[data-chart="devis"], #devis-chart, .devis-chart');
-    if (!container) return;
+function displayStatusChart(stats) {
+    const canvas = document.getElementById('status-chart');
+    if (!canvas) return;
 
-    const total = stats.totalDevis || 1;
-    const data = [
-        { label: 'Brouillon', value: stats.devisBrouillon, color: 'bg-gray-400' },
-        { label: 'Envoyé', value: stats.devisEnvoye, color: 'bg-blue-400' },
-        { label: 'Accepté', value: stats.devisAccepte, color: 'bg-green-400' },
-        { label: 'Refusé', value: stats.devisRefuse, color: 'bg-red-400' },
-        { label: 'Converti', value: stats.devisConverti, color: 'bg-purple-400' }
-    ];
+    // Détruire le graphique existant si présent
+    if (statusChart) {
+        statusChart.destroy();
+    }
 
-    container.innerHTML = `
-        <div class="space-y-3">
-            ${data.map(d => `
-                <div class="flex items-center gap-3">
-                    <div class="w-24 text-sm text-gray-600">${d.label}</div>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4">
-                        <div class="${d.color} h-4 rounded-full transition-all" style="width: ${(d.value / total) * 100}%"></div>
-                    </div>
-                    <div class="w-12 text-sm text-gray-600 text-right">${d.value}</div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
-/**
- * Affiche le graphique de répartition des factures
- */
-function displayFacturesChart(stats) {
-    const container = document.querySelector('[data-chart="factures"], #factures-chart, .factures-chart');
-    if (!container) return;
-
-    const total = stats.totalFactures || 1;
-    const data = [
-        { label: 'Payées', value: stats.facturesPayees, color: 'bg-green-400' },
-        { label: 'En attente', value: stats.facturesEnAttente, color: 'bg-yellow-400' },
-        { label: 'En retard', value: stats.facturesEnRetard, color: 'bg-red-400' }
-    ];
-
-    container.innerHTML = `
-        <div class="space-y-3">
-            ${data.map(d => `
-                <div class="flex items-center gap-3">
-                    <div class="w-24 text-sm text-gray-600">${d.label}</div>
-                    <div class="flex-1 bg-gray-200 rounded-full h-4">
-                        <div class="${d.color} h-4 rounded-full transition-all" style="width: ${(d.value / total) * 100}%"></div>
-                    </div>
-                    <div class="w-12 text-sm text-gray-600 text-right">${d.value}</div>
-                </div>
-            `).join('')}
-        </div>
-    `;
+    const ctx = canvas.getContext('2d');
+    statusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Devis acceptés', 'Devis en attente', 'Factures payées', 'Factures en attente'],
+            datasets: [{
+                data: [
+                    stats.devisAccepte,
+                    stats.devisEnvoye + stats.devisBrouillon,
+                    stats.facturesPayees,
+                    stats.facturesEnAttente + stats.facturesEnRetard
+                ],
+                backgroundColor: [
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(234, 179, 8, 0.8)',
+                    'rgba(17, 82, 212, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(34, 197, 94, 1)',
+                    'rgba(234, 179, 8, 1)',
+                    'rgba(17, 82, 212, 1)',
+                    'rgba(239, 68, 68, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
 }
 
 /**
@@ -415,25 +403,22 @@ function displayTables(stats) {
  * Affiche le top clients
  */
 function displayTopClients(topClients) {
-    const container = document.querySelector('[data-table="clients"], #top-clients, .top-clients tbody');
+    const container = document.getElementById('top-clients');
     if (!container) return;
 
-    if (topClients.length === 0) {
-        container.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Aucune donnée</td></tr>';
+    if (!topClients || topClients.length === 0) {
+        container.innerHTML = '<p class="text-center py-4 text-gray-500">Aucune donnée disponible</p>';
         return;
     }
 
     container.innerHTML = topClients.map((item, index) => `
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-            <td class="py-2 px-4">
-                <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">${index + 1}</span>
-                    <span class="text-gray-900 dark:text-white">${escapeHtml(item.client?.nom || 'Inconnu')}</span>
-                </div>
-            </td>
-            <td class="py-2 px-4 text-center text-gray-600 dark:text-gray-400">${item.count}</td>
-            <td class="py-2 px-4 text-right font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(item.montant)}</td>
-        </tr>
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-bold">${index + 1}</span>
+                <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.client?.nom || 'Inconnu')}</span>
+            </div>
+            <span class="font-bold text-primary">${Utils.formatCurrency(item.montant)}</span>
+        </div>
     `).join('');
 }
 
@@ -441,25 +426,25 @@ function displayTopClients(topClients) {
  * Affiche le top produits
  */
 function displayTopProduits(topProduits) {
-    const container = document.querySelector('[data-table="produits"], #top-produits, .top-produits tbody');
+    const container = document.getElementById('top-products');
     if (!container) return;
 
-    if (topProduits.length === 0) {
-        container.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-500">Aucune donnée</td></tr>';
+    if (!topProduits || topProduits.length === 0) {
+        container.innerHTML = '<p class="text-center py-4 text-gray-500">Aucune donnée disponible</p>';
         return;
     }
 
     container.innerHTML = topProduits.map((item, index) => `
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-            <td class="py-2 px-4">
-                <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">${index + 1}</span>
-                    <span class="text-gray-900 dark:text-white">${escapeHtml(item.produit?.nom || 'Inconnu')}</span>
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-bold">${index + 1}</span>
+                <div>
+                    <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.produit?.nom || 'Inconnu')}</span>
+                    <span class="text-sm text-gray-500 ml-2">(${item.quantite} vendus)</span>
                 </div>
-            </td>
-            <td class="py-2 px-4 text-center text-gray-600 dark:text-gray-400">${item.quantite}</td>
-            <td class="py-2 px-4 text-right font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(item.montant)}</td>
-        </tr>
+            </div>
+            <span class="font-bold text-primary">${Utils.formatCurrency(item.montant)}</span>
+        </div>
     `).join('');
 }
 

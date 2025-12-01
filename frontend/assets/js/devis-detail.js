@@ -74,24 +74,39 @@ async function loadDevis() {
  * Affiche les détails du devis
  */
 function displayDevis(devis) {
-    // Numéro du devis
-    document.querySelectorAll('[data-devis-numero], .devis-numero, h1, h2').forEach(el => {
-        if (el.textContent.includes('Devis') || el.classList.contains('devis-numero')) {
-            el.textContent = `Devis DEV-${String(devis.id).padStart(4, '0')}`;
-        }
-    });
+    // Numéro du devis dans le fil d'ariane
+    const breadcrumbNumero = document.getElementById('devis-numero');
+    if (breadcrumbNumero) {
+        breadcrumbNumero.textContent = devis.numeroDevis || `DEV-${String(devis.id).padStart(4, '0')}`;
+    }
+
+    // Informations du devis
+    const infoNumero = document.getElementById('info-numero');
+    if (infoNumero) {
+        infoNumero.textContent = devis.numeroDevis || `DEV-${String(devis.id).padStart(4, '0')}`;
+    }
+
+    const infoDate = document.getElementById('info-date');
+    if (infoDate) {
+        infoDate.textContent = Utils.formatDate(devis.dateDevis);
+    }
 
     // Statut
-    const statusEl = document.querySelector('[data-devis-statut], .devis-statut');
-    if (statusEl) {
-        statusEl.innerHTML = Utils.getDevisStatusBadge(devis.statut);
+    const infoStatut = document.getElementById('info-statut');
+    if (infoStatut) {
+        const statusConfig = {
+            'EN_COURS': { text: 'En cours', class: 'bg-yellow-100 text-yellow-800' },
+            'VALIDE': { text: 'Validé', class: 'bg-green-100 text-green-800' },
+            'TRANSFORME_EN_FACTURE': { text: 'Converti', class: 'bg-blue-100 text-blue-800' },
+            'ANNULE': { text: 'Annulé', class: 'bg-red-100 text-red-800' }
+        };
+        const config = statusConfig[devis.statut] || { text: devis.statut, class: 'bg-gray-100 text-gray-800' };
+        infoStatut.textContent = config.text;
+        infoStatut.className = `inline-flex rounded-full px-2 py-1 text-xs font-semibold ${config.class}`;
     }
 
     // Informations client
     displayClientInfo(devis.client);
-
-    // Dates
-    displayDates(devis);
 
     // Lignes du devis
     displayLignes(devis.lignes || []);
@@ -99,10 +114,10 @@ function displayDevis(devis) {
     // Totaux
     displayTotals(devis);
 
-    // Notes
-    const notesEl = document.querySelector('[data-devis-notes], .devis-notes, .notes');
-    if (notesEl) {
-        notesEl.textContent = devis.notes || 'Aucune note';
+    // Commentaire
+    const commentaireEl = document.getElementById('commentaire');
+    if (commentaireEl) {
+        commentaireEl.textContent = devis.commentaire || 'Aucun commentaire';
     }
 }
 
@@ -113,34 +128,27 @@ function displayClientInfo(client) {
     if (!client) return;
 
     // Nom
-    document.querySelectorAll('[data-client-nom], .client-nom').forEach(el => {
-        el.textContent = client.nom;
-    });
+    const clientName = document.getElementById('client-name');
+    if (clientName) {
+        clientName.textContent = client.nom || '--';
+    }
 
     // Email
-    document.querySelectorAll('[data-client-email], .client-email').forEach(el => {
-        el.textContent = client.email;
-    });
+    const clientEmail = document.getElementById('client-email');
+    if (clientEmail) {
+        clientEmail.textContent = client.email || '--';
+    }
 
     // Téléphone
-    document.querySelectorAll('[data-client-telephone], .client-telephone').forEach(el => {
-        el.textContent = client.telephone || 'Non renseigné';
-    });
+    const clientPhone = document.getElementById('client-phone');
+    if (clientPhone) {
+        clientPhone.textContent = client.telephone || 'Non renseigné';
+    }
 
     // Adresse
-    document.querySelectorAll('[data-client-adresse], .client-adresse').forEach(el => {
-        el.textContent = client.adresse || 'Non renseignée';
-    });
-
-    // Bloc info client
-    const clientBlock = document.querySelector('.client-info, .client-block');
-    if (clientBlock) {
-        clientBlock.innerHTML = `
-            <p class="font-semibold text-gray-900 dark:text-white">${escapeHtml(client.nom)}</p>
-            <p class="text-gray-600 dark:text-gray-400">${escapeHtml(client.email)}</p>
-            <p class="text-gray-600 dark:text-gray-400">${escapeHtml(client.telephone || '')}</p>
-            <p class="text-gray-600 dark:text-gray-400">${escapeHtml(client.adresse || '')}</p>
-        `;
+    const clientAddress = document.getElementById('client-address');
+    if (clientAddress) {
+        clientAddress.textContent = client.adresse || 'Non renseignée';
     }
 }
 
@@ -175,13 +183,13 @@ function displayDates(devis) {
  * Affiche les lignes du devis
  */
 function displayLignes(lignes) {
-    const tbody = document.querySelector('table tbody, .lignes-container');
+    const tbody = document.getElementById('lines-table-body');
     if (!tbody) return;
 
-    if (lignes.length === 0) {
+    if (!lignes || lignes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                <td colspan="5" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">
                     Aucune ligne dans ce devis
                 </td>
             </tr>
@@ -189,19 +197,20 @@ function displayLignes(lignes) {
         return;
     }
 
-    tbody.innerHTML = lignes.map((ligne, index) => {
-        const totalLigne = ligne.quantite * ligne.prixUnitaireHT;
+    tbody.innerHTML = lignes.map((ligne) => {
+        const produitNom = ligne.produit ? ligne.produit.nom : 'Produit inconnu';
+        const totalLigne = (ligne.quantite || 0) * (ligne.prixUnitaireHT || 0);
+        const tva = ligne.tva || 20;
+        
         return `
             <tr class="border-b border-gray-200 dark:border-gray-700">
-                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${index + 1}</td>
                 <td class="px-4 py-3">
-                    <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(ligne.designation)}</p>
-                    ${ligne.produit ? `<p class="text-sm text-gray-500">${escapeHtml(ligne.produit.categorie || '')}</p>` : ''}
+                    <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(produitNom)}</p>
                 </td>
-                <td class="px-4 py-3 text-sm text-center text-gray-900 dark:text-white">${ligne.quantite}</td>
-                <td class="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">${Utils.formatCurrency(ligne.prixUnitaireHT)}</td>
-                <td class="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">${ligne.tauxTVA || 20}%</td>
-                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(totalLigne)}</td>
+                <td class="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">${ligne.quantite}</td>
+                <td class="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">${Utils.formatCurrency(ligne.prixUnitaireHT)}</td>
+                <td class="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">${tva}%</td>
+                <td class="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(totalLigne)}</td>
             </tr>
         `;
     }).join('');
@@ -212,19 +221,22 @@ function displayLignes(lignes) {
  */
 function displayTotals(devis) {
     // Total HT
-    document.querySelectorAll('[data-total-ht], .total-ht').forEach(el => {
-        el.textContent = Utils.formatCurrency(devis.montantHT || 0);
-    });
+    const totalHt = document.getElementById('total-ht');
+    if (totalHt) {
+        totalHt.textContent = Utils.formatCurrency(devis.totalHT || 0);
+    }
 
     // Total TVA
-    document.querySelectorAll('[data-total-tva], .total-tva').forEach(el => {
-        el.textContent = Utils.formatCurrency(devis.montantTVA || 0);
-    });
+    const totalTva = document.getElementById('total-tva');
+    if (totalTva) {
+        totalTva.textContent = Utils.formatCurrency(devis.totalTVA || 0);
+    }
 
     // Total TTC
-    document.querySelectorAll('[data-total-ttc], .total-ttc').forEach(el => {
-        el.textContent = Utils.formatCurrency(devis.montantTTC || 0);
-    });
+    const totalTtc = document.getElementById('total-ttc');
+    if (totalTtc) {
+        totalTtc.textContent = Utils.formatCurrency(devis.totalTTC || 0);
+    }
 }
 
 /**
@@ -233,33 +245,17 @@ function displayTotals(devis) {
 function updateActionButtons() {
     const statut = devisData?.statut;
 
-    // Cacher/afficher les boutons selon le statut
-    document.querySelectorAll('button').forEach(btn => {
-        const text = btn.textContent.toLowerCase();
-        const icon = btn.querySelector('.material-symbols-outlined');
-        const iconText = icon?.textContent || '';
+    // Bouton modifier
+    const btnEdit = document.getElementById('btn-edit');
+    if (btnEdit) {
+        btnEdit.style.display = (statut === 'EN_COURS') ? '' : 'none';
+    }
 
-        // Bouton modifier - seulement si brouillon
-        if (text.includes('modifier') || iconText === 'edit') {
-            btn.style.display = statut === 'BROUILLON' ? '' : 'none';
-        }
-
-        // Bouton envoyer - seulement si brouillon
-        if (text.includes('envoyer') || iconText === 'send') {
-            btn.style.display = statut === 'BROUILLON' ? '' : 'none';
-        }
-
-        // Boutons accepter/refuser - seulement si envoyé
-        if (text.includes('accepter') || iconText === 'check_circle' ||
-            text.includes('refuser') || iconText === 'cancel') {
-            btn.style.display = statut === 'ENVOYE' ? '' : 'none';
-        }
-
-        // Bouton convertir - seulement si accepté
-        if (text.includes('convertir') || iconText === 'receipt') {
-            btn.style.display = statut === 'ACCEPTE' ? '' : 'none';
-        }
-    });
+    // Bouton convertir en facture
+    const btnConvert = document.getElementById('btn-convert');
+    if (btnConvert) {
+        btnConvert.style.display = (statut === 'VALIDE') ? '' : 'none';
+    }
 }
 
 /**

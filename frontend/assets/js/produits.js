@@ -26,22 +26,162 @@ function setupEventListeners() {
     });
 
     // Recherche
-    const searchInput = document.querySelector('input[placeholder*="Rechercher"]');
+    const searchInput = document.getElementById('search-input') || document.querySelector('input[placeholder*="Rechercher"]');
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
             filterProduits(e.target.value);
         }, 300));
     }
 
-    // Filtres de catégorie
-    document.querySelectorAll('[data-category-filter], .category-filter').forEach(filter => {
-        filter.addEventListener('click', (e) => {
-            const category = e.target.dataset.category;
-            if (category) {
-                filterByCategory(category);
+    // Select de catégorie natif
+    const categorySelect = document.getElementById('category-filter');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', (e) => {
+            filterByCategory(e.target.value || 'all');
+        });
+    }
+
+    // Select de stock natif
+    const stockSelect = document.getElementById('stock-filter');
+    if (stockSelect) {
+        stockSelect.addEventListener('change', (e) => {
+            filterByStock(e.target.value);
+        });
+    }
+
+    // Dropdown de catégorie (boutons)
+    setupCategoryDropdown();
+    
+    // Dropdown de tri (boutons)
+    setupSortDropdown();
+}
+
+/**
+ * Configure le dropdown de catégorie
+ */
+function setupCategoryDropdown() {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        const text = btn.textContent.toLowerCase();
+        if (text.includes('catégorie') || text.includes('categorie')) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleProduitDropdown(btn, 'category');
+            });
+        }
+    });
+}
+
+/**
+ * Configure le dropdown de tri pour les produits
+ */
+function setupSortDropdown() {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        const text = btn.textContent.toLowerCase();
+        if (text.includes('trier')) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleProduitDropdown(btn, 'sort');
+            });
+        }
+    });
+}
+
+/**
+ * Toggle le dropdown des produits
+ */
+function toggleProduitDropdown(button, type) {
+    // Fermer tous les dropdowns existants
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.remove());
+    
+    const existingMenu = document.getElementById(`${type}ProduitDropdownMenu`);
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const menu = document.createElement('div');
+    menu.id = `${type}ProduitDropdownMenu`;
+    menu.className = 'dropdown-menu absolute mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50';
+    
+    if (type === 'category') {
+        let categoriesHtml = `<button onclick="applyCategoryFilter('all')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">Toutes</button>`;
+        categories.forEach((cat, index) => {
+            const isLast = index === categories.length - 1;
+            categoriesHtml += `<button onclick="applyCategoryFilter('${cat}')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${isLast ? 'rounded-b-lg' : ''}">${cat}</button>`;
+        });
+        menu.innerHTML = categoriesHtml;
+    } else if (type === 'sort') {
+        menu.innerHTML = `
+            <button onclick="applyProduitSortFilter('nom')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg">Nom</button>
+            <button onclick="applyProduitSortFilter('prix')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Prix</button>
+            <button onclick="applyProduitSortFilter('stock')" class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg">Stock</button>
+        `;
+    }
+
+    button.parentElement.style.position = 'relative';
+    button.parentElement.appendChild(menu);
+
+    // Fermer le menu au clic ailleurs
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target) && e.target !== button) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
             }
         });
+    }, 0);
+}
+
+/**
+ * Applique le filtre de catégorie
+ */
+function applyCategoryFilter(category) {
+    filterByCategory(category);
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.remove());
+    
+    // Mettre à jour le texte du bouton
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        const text = btn.textContent.toLowerCase();
+        if (text.includes('catégorie') || text.includes('categorie')) {
+            const pEl = btn.querySelector('p');
+            if (pEl) pEl.textContent = 'Catégorie: ' + (category === 'all' ? 'Toutes' : category);
+        }
     });
+}
+
+/**
+ * Applique le filtre de tri pour les produits
+ */
+function applyProduitSortFilter(sortBy) {
+    sortProduits(sortBy);
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.remove());
+    
+    // Mettre à jour le texte du bouton
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        if (btn.textContent.toLowerCase().includes('trier')) {
+            const pEl = btn.querySelector('p');
+            const sortText = sortBy === 'nom' ? 'Nom' : (sortBy === 'prix' ? 'Prix' : 'Stock');
+            if (pEl) pEl.textContent = 'Trier par: ' + sortText;
+        }
+    });
+}
+
+/**
+ * Trie les produits
+ */
+function sortProduits(sortBy) {
+    if (sortBy === 'nom') {
+        filteredProduits.sort((a, b) => a.nom.localeCompare(b.nom));
+    } else if (sortBy === 'prix') {
+        filteredProduits.sort((a, b) => b.prixUnitaireHT - a.prixUnitaireHT);
+    } else if (sortBy === 'stock') {
+        filteredProduits.sort((a, b) => (b.stock || 0) - (a.stock || 0));
+    }
+    renderProduits(filteredProduits);
 }
 
 /**
@@ -55,6 +195,9 @@ async function loadProduits() {
         
         // Extraire les catégories uniques
         categories = [...new Set(allProduits.map(p => p.categorie).filter(Boolean))];
+        
+        // Remplir le select de catégorie si présent
+        populateCategorySelect();
         
         renderProduits(filteredProduits);
         renderCategoryFilters();
@@ -207,6 +350,40 @@ function getStockBadge(stock) {
 }
 
 /**
+ * Remplit le select de catégorie natif
+ */
+function populateCategorySelect() {
+    const categorySelect = document.getElementById('category-filter');
+    if (!categorySelect) return;
+    
+    // Garder la première option "Toutes catégories"
+    const firstOption = categorySelect.querySelector('option');
+    categorySelect.innerHTML = '';
+    if (firstOption) categorySelect.appendChild(firstOption);
+    
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+    });
+}
+
+/**
+ * Filtre les produits par stock
+ */
+function filterByStock(stockFilter) {
+    if (!stockFilter) {
+        filteredProduits = [...allProduits];
+    } else if (stockFilter === 'low') {
+        filteredProduits = allProduits.filter(p => p.stock > 0 && p.stock <= 10);
+    } else if (stockFilter === 'out') {
+        filteredProduits = allProduits.filter(p => p.stock === 0 || p.stock === null);
+    }
+    renderProduits(filteredProduits);
+}
+
+/**
  * Affiche les filtres de catégorie
  */
 function renderCategoryFilters() {
@@ -351,5 +528,14 @@ window.ProduitsPage = {
     editProduit,
     deleteProduit,
     filterProduits,
-    filterByCategory
+    filterByCategory,
+    filterByStock
 };
+
+// Exposer les fonctions globalement pour le HTML onclick
+window.editProduit = editProduit;
+window.deleteProduit = deleteProduit;
+window.filterByCategory = filterByCategory;
+window.filterByStock = filterByStock;
+window.applyCategoryFilter = applyCategoryFilter;
+window.applyProduitSortFilter = applyProduitSortFilter;
