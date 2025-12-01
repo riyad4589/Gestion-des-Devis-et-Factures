@@ -3,7 +3,7 @@
  * Gère la connexion et la déconnexion avec le backend
  */
 
-const AUTH_API_URL = 'http://localhost:8080/api/auth';
+const AUTH_API_URL = '/api/auth';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Vérifier si déjà connecté
