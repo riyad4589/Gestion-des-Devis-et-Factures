@@ -26,11 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupLoginForm() {
     // Chercher le formulaire ou le bouton de connexion
     const form = document.querySelector('form');
-    const loginBtn = document.querySelector('button');
+    const loginBtn = document.getElementById('login-btn') || document.querySelector('button:not(#toggle-password)');
     
     if (form) {
         form.addEventListener('submit', handleLogin);
-    } else if (loginBtn && loginBtn.textContent.toLowerCase().includes('connexion')) {
+    } else if (loginBtn) {
         // Si pas de formulaire, ajouter l'événement au bouton
         loginBtn.addEventListener('click', handleLoginClick);
     }
@@ -71,7 +71,7 @@ async function handleLoginClick(e) {
     e.preventDefault();
     
     const emailInput = document.querySelector('input[type="email"], input[placeholder*="email"]');
-    const passwordInput = document.querySelector('input[type="password"]');
+    const passwordInput = document.getElementById('password-input') || document.querySelector('input[type="password"]');
     const rememberMe = document.querySelector('[type="checkbox"]');
     
     const email = emailInput?.value?.trim();
