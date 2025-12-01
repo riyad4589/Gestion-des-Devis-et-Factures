@@ -56,6 +56,11 @@ public interface FactureService {
     FactureDTO annuler(Long id);
 
     /**
+     * Supprime définitivement une facture
+     */
+    void delete(Long id);
+
+    /**
      * Génère le numéro de facture
      */
     String genererNumeroFacture();

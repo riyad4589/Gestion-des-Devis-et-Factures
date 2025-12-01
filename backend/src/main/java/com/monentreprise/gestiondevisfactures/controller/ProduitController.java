@@ -55,7 +55,7 @@ public class ProduitController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Supprime (désactive) un produit")
+    @Operation(summary = "Supprime définitivement un produit")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         produitService.delete(id);
         return ResponseEntity.noContent().build();

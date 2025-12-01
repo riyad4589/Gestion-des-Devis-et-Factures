@@ -55,7 +55,7 @@ public class ClientController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Supprime (désactive) un client")
+    @Operation(summary = "Supprime définitivement un client")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         clientService.delete(id);
         return ResponseEntity.noContent().build();

@@ -121,7 +121,7 @@ async function performLogin(email, password, rememberMe, submitBtn) {
 
     try {
         // Appel API réel au backend
-        const response = await fetch(`${AUTH_API_URL}/login`, {
+        const response = await fetch(AUTH_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

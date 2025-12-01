@@ -184,4 +184,13 @@ public class FactureServiceImpl implements FactureService {
 
         return ligne;
     }
+
+    @Override
+    public void delete(Long id) {
+        Facture facture = factureRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facture", "id", id));
+
+        // Hard delete - suppression définitive de la base de données
+        factureRepository.delete(facture);
+    }
 }

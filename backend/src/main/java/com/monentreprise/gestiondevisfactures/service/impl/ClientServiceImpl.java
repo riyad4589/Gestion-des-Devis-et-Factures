@@ -83,9 +83,8 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
         
-        // Soft delete - on désactive le client
-        client.setActif(false);
-        clientRepository.save(client);
+        // Hard delete - suppression définitive de la base de données
+        clientRepository.delete(client);
     }
 
     @Override

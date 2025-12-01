@@ -85,6 +85,13 @@ public class FactureController {
         return ResponseEntity.ok(factureService.annuler(id));
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Supprime définitivement une facture")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        factureService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Télécharge la facture en PDF")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
