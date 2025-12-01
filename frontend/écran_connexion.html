@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Écran Connexion</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0D47A1",
+              "background-light": "#f4f6f8",
+              "background-dark": "#101622",
+              "text-light": "#333333",
+              "text-dark": "#f4f6f8",
+              "card-light": "#ffffff",
+              "card-dark": "#1e293b",
+              "border-light": "#B0BEC5",
+              "border-dark": "#475569"
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1 justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+<div class="layout-content-container flex flex-col w-full max-w-md">
+<!-- Logo -->
+<div class="flex justify-center mb-8">
+<div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-4xl">
+                                business_center
+                            </span>
+</div>
+</div>
+<!-- Card -->
+<div class="bg-card-light dark:bg-card-dark p-8 sm:p-10 rounded-xl shadow-lg w-full">
+<!-- Headline -->
+<h1 class="text-text-light dark:text-text-dark tracking-tight text-3xl font-bold text-center mb-1">Bienvenue</h1>
+<p class="text-center text-gray-500 dark:text-gray-400 mb-8">Connectez-vous à votre compte</p>
+<!-- Form -->
+<div class="flex flex-col gap-5">
+<!-- Email Field -->
+<label class="flex flex-col w-full">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal pb-2">Email</p>
+<div class="relative flex w-full flex-1 items-stretch">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                                        mail
+                                    </span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 pl-10 pr-4 text-base font-normal leading-normal" placeholder="entrez votre email" value=""/>
+</div>
+</label>
+<!-- Password Field -->
+<label class="flex flex-col w-full">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal pb-2">Mot de passe</p>
+<div class="relative flex w-full flex-1 items-stretch">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                                        lock
+                                    </span>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 pl-10 pr-4 text-base font-normal leading-normal" placeholder="entrez votre mot de passe" type="password" value=""/>
+</div>
+</label>
+<!-- Options -->
+<div class="flex items-center justify-between mt-1">
+<label class="flex items-center space-x-2">
+<input class="form-checkbox h-4 w-4 rounded text-primary border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark focus:ring-primary/50" type="checkbox"/>
+<span class="text-sm text-gray-600 dark:text-gray-300">Se souvenir de moi</span>
+</label>
+<a class="text-sm font-medium text-primary hover:underline" href="#">Mot de passe oublié ?</a>
+</div>
+<!-- Submit Button -->
+<div class="flex pt-4">
+<button class="flex min-w-[84px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 focus:ring-offset-card-light dark:focus:ring-offset-card-dark transition-colors duration-200">
+<span class="truncate">Connexion</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/auth.js"></script>
+</body></html>

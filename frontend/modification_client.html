@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html class="light" lang="fr">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Modification Client</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1152d4",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+    
+    <!-- Main Content -->
+    <main class="ml-64 min-h-screen p-8">
+        <!-- Page Header -->
+        <div class="mb-6">
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                <a href="écran_clients_(liste).html" class="hover:text-primary">Clients</a>
+                <span class="material-symbols-outlined text-sm">chevron_right</span>
+                <span id="breadcrumb-action">Nouveau Client</span>
+            </div>
+            <h1 class="text-gray-900 dark:text-white text-3xl font-bold" id="page-title">Nouveau Client</h1>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-gray-800 p-6 max-w-2xl">
+            <form id="client-form" class="flex flex-col gap-6">
+                <input type="hidden" id="client-id" value="">
+                
+                <!-- Nom -->
+                <div class="flex flex-col gap-2">
+                    <label for="nom" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nom complet *</label>
+                    <input type="text" id="nom" name="nom" required
+                        class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Ex: Jean Dupont">
+                </div>
+
+                <!-- Email -->
+                <div class="flex flex-col gap-2">
+                    <label for="email" class="text-sm font-medium text-gray-700 dark:text-gray-300">Email *</label>
+                    <input type="email" id="email" name="email" required
+                        class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Ex: jean.dupont@email.com">
+                </div>
+
+                <!-- Téléphone -->
+                <div class="flex flex-col gap-2">
+                    <label for="telephone" class="text-sm font-medium text-gray-700 dark:text-gray-300">Téléphone</label>
+                    <input type="tel" id="telephone" name="telephone"
+                        class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Ex: 06 12 34 56 78">
+                </div>
+
+                <!-- Adresse -->
+                <div class="flex flex-col gap-2">
+                    <label for="adresse" class="text-sm font-medium text-gray-700 dark:text-gray-300">Adresse</label>
+                    <textarea id="adresse" name="adresse" rows="3"
+                        class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                        placeholder="Adresse complète du client"></textarea>
+                </div>
+
+                <!-- Statut -->
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="actif" name="actif" checked
+                        class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary">
+                    <label for="actif" class="text-sm font-medium text-gray-700 dark:text-gray-300">Client actif</label>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <button type="submit" class="flex items-center justify-center gap-2 rounded-lg h-10 px-6 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">save</span>
+                        <span>Enregistrer</span>
+                    </button>
+                    <button type="button" onclick="Navigation.goTo('écran_clients_(liste).html')" class="flex items-center justify-center gap-2 rounded-lg h-10 px-6 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                        <span>Annuler</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="assets/js/sidebar.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/navigation.js"></script>
+    <script src="assets/js/client-form.js"></script>
+</body>
+</html>

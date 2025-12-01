@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html class="light" lang="fr">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Paramètres</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1152d4",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+    <!-- Sidebar Container -->
+    <div id="sidebar-container"></div>
+    
+    <!-- Main Content -->
+    <main class="ml-64 min-h-screen p-8">
+        <!-- Page Header -->
+        <div class="mb-6">
+            <h1 class="text-gray-900 dark:text-white text-3xl font-bold">Paramètres</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">Configurez votre application</p>
+        </div>
+
+        <div class="max-w-3xl flex flex-col gap-6">
+            <!-- Profil Section -->
+            <div class="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Profil utilisateur</h2>
+                <div class="flex items-start gap-4 mb-6">
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary">
+                        <span class="material-symbols-outlined text-3xl">person</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900 dark:text-white" id="user-name">Chargement...</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm" id="user-email">--</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm" id="user-role">--</p>
+                    </div>
+                </div>
+                <form id="profile-form" class="flex flex-col gap-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label for="prenom" class="text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
+                            <input type="text" id="prenom" name="prenom" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="nom" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nom</label>
+                            <input type="text" id="nom" name="nom" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+                    <button type="submit" class="self-start flex items-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">save</span>
+                        <span>Enregistrer</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Password Section -->
+            <div class="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Changer le mot de passe</h2>
+                <form id="password-form" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="current-password" class="text-sm font-medium text-gray-700 dark:text-gray-300">Mot de passe actuel</label>
+                        <input type="password" id="current-password" name="currentPassword" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label for="new-password" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nouveau mot de passe</label>
+                            <input type="password" id="new-password" name="newPassword" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="confirm-password" class="text-sm font-medium text-gray-700 dark:text-gray-300">Confirmer</label>
+                            <input type="password" id="confirm-password" name="confirmPassword" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+                    <button type="submit" class="self-start flex items-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">lock</span>
+                        <span>Changer le mot de passe</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Appearance Section -->
+            <div class="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Apparence</h2>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">Mode sombre</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Activer le thème sombre</p>
+                    </div>
+                    <button id="theme-toggle" class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-primary transition-colors">
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1 dark:translate-x-6"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Company Section -->
+            <div class="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Informations entreprise</h2>
+                <form id="company-form" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-2">
+                        <label for="company-name" class="text-sm font-medium text-gray-700 dark:text-gray-300">Nom de l'entreprise</label>
+                        <input type="text" id="company-name" name="companyName" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary" value="GestFacture">
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label for="company-address" class="text-sm font-medium text-gray-700 dark:text-gray-300">Adresse</label>
+                        <textarea id="company-address" name="companyAddress" rows="2" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary resize-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label for="company-siret" class="text-sm font-medium text-gray-700 dark:text-gray-300">SIRET</label>
+                            <input type="text" id="company-siret" name="companySiret" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label for="company-tva" class="text-sm font-medium text-gray-700 dark:text-gray-300">N° TVA</label>
+                            <input type="text" id="company-tva" name="companyTva" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+                    <button type="submit" class="self-start flex items-center gap-2 rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                        <span class="material-symbols-outlined">save</span>
+                        <span>Enregistrer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/sidebar.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/navigation.js"></script>
+    <script src="assets/js/parametres.js"></script>
+</body>
+</html>
