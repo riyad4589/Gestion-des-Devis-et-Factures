@@ -19,12 +19,18 @@ public class CorsConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowCredentials(true);
         corsConfiguration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5500",
-            "http://127.0.0.1:5500",
-            "http://localhost:3000",
-            "http://localhost:8080",
-            "http://localhost:4200"
+                "http://localhost:5500",
+                "http://127.0.0.1:5500",
+                "http://localhost:3000",
+                "http://localhost:8080",
+                "http://localhost:4200",
+
+                // Domains Vercel
+                "https://gestion-des-devis-et-factures.vercel.app",
+                "https://gestion-des-devis-et-factu-git-8936ec-riyadmaj10-5705s-projects.vercel.app",
+                "https://gestion-des-devis-et-factures-lv97574mo.vercel.app"
         ));
+
         corsConfiguration.setAllowedHeaders(Arrays.asList(
             "Origin", "Access-Control-Allow-Origin", "Content-Type",
             "Accept", "Authorization", "Origin, Accept", "X-Requested-With",
