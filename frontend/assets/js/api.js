@@ -3,7 +3,7 @@
  * Ce fichier gère toutes les communications avec le backend Spring Boot
  */
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'https://gestion-des-devis-et-factures.onrender.com/api';
 
 // Configuration des en-têtes par défaut
 const defaultHeaders = {
