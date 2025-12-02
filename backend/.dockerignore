@@ -1,4 +1,22 @@
+# Build output
 target
+
+# IDE
 .idea
 .vscode
 *.iml
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Node (si un jour tu ajoutes un frontend)
+node_modules
+dist

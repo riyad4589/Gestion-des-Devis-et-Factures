@@ -1,8 +1,24 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
+# IntelliJ
+*.iml
+.idea/
+shelf/
+workspace.xml
+dataSources/
+dataSources.local.xml
+
+# VSCode
+.vscode/
+
+# Build
+backend/target/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+
+# Docker junk
+**/tmp/
