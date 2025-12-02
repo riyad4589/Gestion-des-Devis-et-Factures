@@ -166,15 +166,14 @@
      * Récupère le nom de l'entreprise depuis le localStorage ou l'API
      */
     async function getCompanyName() {
-        // D'abord, vérifier le localStorage
         const cachedName = localStorage.getItem(COMPANY_NAME_KEY);
-        if (cachedName) {
-            return cachedName;
-        }
-        
-        // Sinon, essayer de récupérer depuis l'API
+        if (cachedName) return cachedName;
+
         try {
-            const response = await fetch('http://localhost:8080/api/entreprise');
+            const API_BASE_URL = "https://gestion-des-devis-et-factures.onrender.com";
+
+            const response = await fetch(`${API_BASE_URL}/api/entreprise`);
+
             if (response.ok) {
                 const entreprise = await response.json();
                 if (entreprise && entreprise.nom) {
@@ -183,11 +182,12 @@
                 }
             }
         } catch (e) {
-            console.log('Impossible de récupérer le nom de l\'entreprise depuis l\'API');
+            console.log("Impossible de récupérer le nom de l'entreprise depuis l'API");
         }
-        
+
         return DEFAULT_COMPANY_NAME;
     }
+
 
     /**
      * Met à jour le titre de la page avec le nom de l'entreprise
