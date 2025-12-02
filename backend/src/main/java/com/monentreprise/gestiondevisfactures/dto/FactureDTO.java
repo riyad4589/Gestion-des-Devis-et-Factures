@@ -28,6 +28,8 @@ public class FactureDTO {
     
     private String clientNom;
     private String clientEmail;
+    private String clientTelephone;
+    private String clientAdresse;
 
     private Long devisOrigineId;
     private String devisOrigineNumero;

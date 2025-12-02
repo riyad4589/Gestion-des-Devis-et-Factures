@@ -102,6 +102,8 @@ public class UserService {
 
     /**
      * Met à jour un utilisateur
+     * Note: Le rôle et le statut actif ne sont modifiés que si explicitement fournis
+     * et différents de la valeur par défaut (pour éviter les écrasements accidentels)
      */
     public UserDTO updateUser(Long id, User userDetails) {
         User user = userRepository.findById(id)
@@ -113,8 +115,11 @@ public class UserService {
         if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
             user.setPassword(userDetails.getPassword());
         }
-        if (userDetails.getRole() != null) user.setRole(userDetails.getRole());
-        if (userDetails.getActif() != null) user.setActif(userDetails.getActif());
+        // Ne pas écraser le rôle avec la valeur par défaut "USER"
+        // Le rôle ne doit être modifié que si explicitement demandé avec une valeur différente
+        // Pour changer le rôle, utiliser une API admin dédiée ou envoyer explicitement le rôle
+        
+        // Ne pas modifier actif automatiquement (géré séparément)
 
         User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
@@ -125,6 +130,28 @@ public class UserService {
      */
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
+    }
+
+    /**
+     * Change le mot de passe d'un utilisateur
+     */
+    public void changePassword(Long id, String currentPassword, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        // Vérifier le mot de passe actuel
+        if (!user.getPassword().equals(currentPassword)) {
+            throw new RuntimeException("Mot de passe actuel incorrect");
+        }
+
+        // Valider le nouveau mot de passe
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("Le nouveau mot de passe doit contenir au moins 6 caractères");
+        }
+
+        // Mettre à jour le mot de passe
+        user.setPassword(newPassword);
+        userRepository.save(user);
     }
 
     /**

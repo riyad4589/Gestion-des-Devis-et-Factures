@@ -85,17 +85,16 @@ async function loadFactures() {
 function updateStats() {
     const stats = {
         total: allFactures.length,
-        brouillon: allFactures.filter(f => f.statut === 'BROUILLON').length,
-        envoyee: allFactures.filter(f => f.statut === 'ENVOYEE').length,
+        nonPayee: allFactures.filter(f => f.statut === 'NON_PAYEE').length,
+        partiellementPayee: allFactures.filter(f => f.statut === 'PARTIELLEMENT_PAYEE').length,
         payee: allFactures.filter(f => f.statut === 'PAYEE').length,
-        enRetard: allFactures.filter(f => f.statut === 'EN_RETARD').length,
         annulee: allFactures.filter(f => f.statut === 'ANNULEE').length
     };
 
     // Calculer les montants
-    const montantTotal = allFactures.reduce((sum, f) => sum + (f.montantTTC || 0), 0);
-    const montantPaye = allFactures.filter(f => f.statut === 'PAYEE').reduce((sum, f) => sum + (f.montantTTC || 0), 0);
-    const montantEnAttente = allFactures.filter(f => f.statut === 'ENVOYEE' || f.statut === 'EN_RETARD').reduce((sum, f) => sum + (f.montantTTC || 0), 0);
+    const montantTotal = allFactures.reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
+    const montantPaye = allFactures.filter(f => f.statut === 'PAYEE').reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
+    const montantEnAttente = allFactures.filter(f => f.statut === 'NON_PAYEE' || f.statut === 'PARTIELLEMENT_PAYEE').reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0);
 
     // Mettre à jour les compteurs dans l'interface
     document.querySelectorAll('[data-stat]').forEach(el => {
@@ -141,13 +140,13 @@ function renderFactures(factures) {
             <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span class="text-sm font-medium text-primary">${f.client?.nom?.charAt(0) || '?'}</span>
+                        <span class="text-sm font-medium text-primary">${(f.clientNom || f.client?.nom || '?').charAt(0)}</span>
                     </div>
-                    <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(f.client?.nom || 'Client inconnu')}</span>
+                    <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(f.clientNom || f.client?.nom || 'Client inconnu')}</span>
                 </div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(f.dateFacture)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">-</td>
+            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${f.modePaiement || '-'}</td>
             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(f.montantTTC)}</td>
             <td class="px-4 py-3">${Utils.getFactureStatusBadge(f.statut)}</td>
             <td class="px-4 py-3">
@@ -155,19 +154,21 @@ function renderFactures(factures) {
                     <button onclick="viewFacture(${f.id})" class="p-2 rounded-lg hover:bg-primary/10 text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" title="Voir">
                         <span class="material-symbols-outlined text-xl">visibility</span>
                     </button>
-                    ${f.statut === 'BROUILLON' ? `
-                        <button onclick="editFacture(${f.id})" class="p-2 rounded-lg hover:bg-primary/10 text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" title="Modifier">
+                    ${f.statut !== 'PAYEE' && f.statut !== 'ANNULEE' ? `
+                        <button onclick="editFacture(${f.id})" class="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors" title="Modifier">
                             <span class="material-symbols-outlined text-xl">edit</span>
                         </button>
                     ` : ''}
-                    ${f.statut === 'ENVOYEE' || f.statut === 'EN_RETARD' ? `
-                        <button onclick="payerFacture(${f.id})" class="p-2 rounded-lg hover:bg-green-100 text-gray-600 dark:text-gray-400 hover:text-green-600 transition-colors" title="Marquer comme payée">
+                    ${f.statut === 'NON_PAYEE' || f.statut === 'PARTIELLEMENT_PAYEE' ? `
+                        <button onclick="payerFacture(${f.id})" class="p-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-gray-600 dark:text-gray-400 hover:text-green-600 transition-colors" title="Marquer comme payée">
                             <span class="material-symbols-outlined text-xl">paid</span>
                         </button>
                     ` : ''}
-                    <button onclick="deleteFacture(${f.id})" class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 transition-colors" title="Supprimer">
-                        <span class="material-symbols-outlined text-xl">delete</span>
-                    </button>
+                    ${f.statut !== 'PAYEE' && f.statut !== 'ANNULEE' ? `
+                        <button onclick="deleteFacture(${f.id})" class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 transition-colors" title="Supprimer">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
+                    ` : ''}
                 </div>
             </td>
         </tr>
@@ -183,11 +184,17 @@ function filterFactures(searchTerm) {
     if (!term) {
         filteredFactures = [...allFactures];
     } else {
-        filteredFactures = allFactures.filter(facture => 
-            String(facture.id).includes(term) ||
-            (facture.client?.nom && facture.client.nom.toLowerCase().includes(term)) ||
-            (facture.statut && facture.statut.toLowerCase().includes(term))
-        );
+        filteredFactures = allFactures.filter(facture => {
+            // Recherche par numéro de facture
+            const numeroFacture = (facture.numeroFacture || `FAC-${String(facture.id).padStart(4, '0')}`).toLowerCase();
+            if (numeroFacture.includes(term)) return true;
+            
+            // Recherche par nom du client
+            const clientNom = (facture.clientNom || facture.client?.nom || '').toLowerCase();
+            if (clientNom.includes(term)) return true;
+            
+            return false;
+        });
     }
     
     renderFactures(filteredFactures);

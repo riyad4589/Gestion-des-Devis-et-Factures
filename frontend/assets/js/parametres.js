@@ -4,52 +4,129 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadSettings();
+    loadUserProfile();
+    loadEntreprise();
     setupEventListeners();
 });
 
 /**
- * Charge les paramètres enregistrés
+ * Toggle la visibilité d'un champ mot de passe
  */
-function loadSettings() {
-    // Charger les paramètres depuis le localStorage
-    const settings = getSettings();
+function togglePasswordVisibility(inputId, button) {
+    const input = document.getElementById(inputId);
+    const icon = button.querySelector('.material-symbols-outlined');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility_off';
+    } else {
+        input.type = 'password';
+        icon.textContent = 'visibility';
+    }
+}
 
-    // Informations entreprise
-    setInputValue('[name="entreprise_nom"], #entreprise-nom', settings.entreprise?.nom);
-    setInputValue('[name="entreprise_siret"], #entreprise-siret', settings.entreprise?.siret);
-    setInputValue('[name="entreprise_adresse"], #entreprise-adresse', settings.entreprise?.adresse);
-    setInputValue('[name="entreprise_email"], #entreprise-email', settings.entreprise?.email);
-    setInputValue('[name="entreprise_telephone"], #entreprise-telephone', settings.entreprise?.telephone);
-    setInputValue('[name="entreprise_tva"], #entreprise-tva', settings.entreprise?.tvaIntracom);
+/**
+ * Charge les informations du profil utilisateur depuis la BD
+ */
+async function loadUserProfile() {
+    // Récupérer les données utilisateur depuis localStorage (définies lors de la connexion)
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    const userId = userData.id || localStorage.getItem('userId');
+    
+    if (!userId) {
+        console.warn('Aucun utilisateur connecté');
+        displayUserFallback(userData);
+        return;
+    }
 
-    // Paramètres de facturation
-    setInputValue('[name="tva_defaut"], #tva-defaut', settings.facturation?.tvaDefaut || '20');
-    setInputValue('[name="delai_paiement"], #delai-paiement', settings.facturation?.delaiPaiement || '30');
-    setInputValue('[name="prefixe_devis"], #prefixe-devis', settings.facturation?.prefixeDevis || 'DEV-');
-    setInputValue('[name="prefixe_facture"], #prefixe-facture', settings.facturation?.prefixeFacture || 'FAC-');
-    setInputValue('[name="mentions_legales"], #mentions-legales', settings.facturation?.mentionsLegales);
-    setInputValue('[name="conditions_paiement"], #conditions-paiement', settings.facturation?.conditionsPaiement);
+    try {
+        // Charger les données fraîches depuis l'API
+        const user = await API.Users.getById(userId);
+        
+        // Mettre à jour les affichages
+        const userName = document.getElementById('user-name');
+        const userEmail = document.getElementById('user-email');
+        const userRole = document.getElementById('user-role');
+        const prenomInput = document.getElementById('prenom');
+        const nomInput = document.getElementById('nom');
+        
+        const fullName = [user.prenom, user.nom].filter(Boolean).join(' ') || 'Utilisateur';
+        
+        if (userName) userName.textContent = fullName;
+        if (userEmail) userEmail.textContent = user.email || '--';
+        if (userRole) userRole.textContent = user.role || 'Administrateur';
+        if (prenomInput) prenomInput.value = user.prenom || '';
+        if (nomInput) nomInput.value = user.nom || '';
+        
+        // Remplir le champ email actuel
+        const currentEmailInput = document.getElementById('current-email');
+        if (currentEmailInput) currentEmailInput.value = user.email || '';
+        
+        // Stocker les données mises à jour
+        localStorage.setItem('userData', JSON.stringify(user));
+    } catch (error) {
+        console.error('Erreur lors du chargement du profil:', error);
+        displayUserFallback(userData);
+    }
+}
 
-    // Paramètres d'affichage
-    const theme = settings.display?.theme || 'system';
-    document.querySelectorAll('[name="theme"], [data-theme]').forEach(el => {
-        if (el.value === theme || el.dataset.theme === theme) {
-            if (el.type === 'radio') {
-                el.checked = true;
-            } else if (el.tagName === 'SELECT') {
-                el.value = theme;
+/**
+ * Affiche les données utilisateur de fallback
+ */
+function displayUserFallback(userData) {
+    const userName = document.getElementById('user-name');
+    const userEmail = document.getElementById('user-email');
+    const userRole = document.getElementById('user-role');
+    const prenomInput = document.getElementById('prenom');
+    const nomInput = document.getElementById('nom');
+    
+    const fullName = [userData.prenom, userData.nom].filter(Boolean).join(' ') || 'Utilisateur';
+    
+    if (userName) userName.textContent = fullName;
+    if (userEmail) userEmail.textContent = userData.email || '--';
+    if (userRole) userRole.textContent = userData.role || 'Administrateur';
+    if (prenomInput) prenomInput.value = userData.prenom || '';
+    if (nomInput) nomInput.value = userData.nom || '';
+    
+    // Remplir le champ email actuel
+    const currentEmailInput = document.getElementById('current-email');
+    if (currentEmailInput) currentEmailInput.value = userData.email || '';
+}
+
+/**
+ * Charge les informations de l'entreprise depuis la BD
+ */
+async function loadEntreprise() {
+    try {
+        const entreprise = await API.Entreprise.get();
+        if (entreprise) {
+            document.getElementById('company-name').value = entreprise.nom || '';
+            document.getElementById('company-address').value = entreprise.adresse || '';
+            document.getElementById('company-ice').value = entreprise.ice || '';
+            document.getElementById('company-if').value = entreprise.identifiantFiscal || '';
+            document.getElementById('company-rc').value = entreprise.rc || '';
+            document.getElementById('company-patente').value = entreprise.patente || '';
+            document.getElementById('company-telephone').value = entreprise.telephone || '';
+            document.getElementById('company-email').value = entreprise.email || '';
+            
+            // Charger le logo s'il existe
+            if (entreprise.logo) {
+                const logoPreview = document.getElementById('company-logo-preview');
+                if (logoPreview) {
+                    logoPreview.src = entreprise.logo;
+                }
+                // Stocker le logo dans localStorage pour le favicon
+                localStorage.setItem('entrepriseLogo', entreprise.logo);
+            }
+            
+            // Stocker l'ID si présent pour savoir si c'est une mise à jour
+            if (entreprise.id) {
+                document.getElementById('company-form')?.setAttribute('data-entreprise-id', entreprise.id);
             }
         }
-    });
-
-    const langue = settings.display?.langue || 'fr';
-    setInputValue('[name="langue"], #langue', langue);
-
-    // Notifications
-    setCheckboxValue('[name="notif_email"], #notif-email', settings.notifications?.email);
-    setCheckboxValue('[name="notif_devis"], #notif-devis', settings.notifications?.devisExpire);
-    setCheckboxValue('[name="notif_facture"], #notif-facture', settings.notifications?.factureRetard);
+    } catch (error) {
+        console.error('Erreur lors du chargement des informations entreprise:', error);
+    }
 }
 
 /**
@@ -57,275 +134,309 @@ function loadSettings() {
  */
 function setupEventListeners() {
     // Formulaire entreprise
-    const entrepriseForm = document.querySelector('#form-entreprise, form:first-of-type');
-    if (entrepriseForm) {
-        entrepriseForm.addEventListener('submit', (e) => {
+    const companyForm = document.getElementById('company-form');
+    if (companyForm) {
+        companyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            saveEntrepriseSettings();
+            await saveEntreprise();
         });
     }
 
-    // Formulaire facturation
-    const facturationForm = document.querySelector('#form-facturation');
-    if (facturationForm) {
-        facturationForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            saveFacturationSettings();
-        });
-    }
-
-    // Changement de thème
-    document.querySelectorAll('[name="theme"], [data-theme]').forEach(el => {
-        el.addEventListener('change', (e) => {
-            const theme = e.target.value || e.target.dataset.theme;
-            applyTheme(theme);
-            saveSettings({ display: { theme } });
-        });
-    });
-
-    // Boutons de sauvegarde
-    document.querySelectorAll('button').forEach(btn => {
-        const text = btn.textContent.toLowerCase();
-        if (text.includes('enregistrer') || text.includes('sauvegarder')) {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                saveAllSettings();
-            });
-        }
-    });
-
-    // Onglets
-    document.querySelectorAll('[data-tab]').forEach(tab => {
-        tab.addEventListener('click', () => {
-            switchTab(tab.dataset.tab);
-        });
-    });
-
-    // Upload de logo
-    const logoInput = document.querySelector('[name="logo"], #logo-upload');
+    // Upload logo
+    const logoInput = document.getElementById('company-logo');
     if (logoInput) {
         logoInput.addEventListener('change', handleLogoUpload);
     }
+
+    // Formulaire profil
+    const profileForm = document.getElementById('profile-form');
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveProfile();
+        });
+    }
+
+    // Formulaire mot de passe
+    const passwordForm = document.getElementById('password-form');
+    if (passwordForm) {
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await changePassword();
+        });
+    }
+
+    // Formulaire email
+    const emailForm = document.getElementById('email-form');
+    if (emailForm) {
+        emailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await changeEmail();
+        });
+    }
+
 }
 
 /**
- * Change d'onglet
+ * Variable pour stocker le logo en base64
  */
-function switchTab(tabName) {
-    // Mettre à jour les onglets actifs
-    document.querySelectorAll('[data-tab]').forEach(tab => {
-        if (tab.dataset.tab === tabName) {
-            tab.classList.add('border-primary', 'text-primary', 'bg-primary/5');
-            tab.classList.remove('border-transparent', 'text-gray-500');
-        } else {
-            tab.classList.remove('border-primary', 'text-primary', 'bg-primary/5');
-            tab.classList.add('border-transparent', 'text-gray-500');
-        }
-    });
-
-    // Afficher le contenu de l'onglet
-    document.querySelectorAll('[data-tab-content]').forEach(content => {
-        if (content.dataset.tabContent === tabName) {
-            content.classList.remove('hidden');
-        } else {
-            content.classList.add('hidden');
-        }
-    });
-}
-
-/**
- * Sauvegarde les paramètres de l'entreprise
- */
-function saveEntrepriseSettings() {
-    const settings = getSettings();
-    
-    settings.entreprise = {
-        nom: getInputValue('[name="entreprise_nom"], #entreprise-nom'),
-        siret: getInputValue('[name="entreprise_siret"], #entreprise-siret'),
-        adresse: getInputValue('[name="entreprise_adresse"], #entreprise-adresse'),
-        email: getInputValue('[name="entreprise_email"], #entreprise-email'),
-        telephone: getInputValue('[name="entreprise_telephone"], #entreprise-telephone'),
-        tvaIntracom: getInputValue('[name="entreprise_tva"], #entreprise-tva')
-    };
-
-    saveSettings(settings);
-    showToast('Paramètres entreprise enregistrés', 'success');
-}
-
-/**
- * Sauvegarde les paramètres de facturation
- */
-function saveFacturationSettings() {
-    const settings = getSettings();
-    
-    settings.facturation = {
-        tvaDefaut: getInputValue('[name="tva_defaut"], #tva-defaut') || '20',
-        delaiPaiement: getInputValue('[name="delai_paiement"], #delai-paiement') || '30',
-        prefixeDevis: getInputValue('[name="prefixe_devis"], #prefixe-devis') || 'DEV-',
-        prefixeFacture: getInputValue('[name="prefixe_facture"], #prefixe-facture') || 'FAC-',
-        mentionsLegales: getInputValue('[name="mentions_legales"], #mentions-legales'),
-        conditionsPaiement: getInputValue('[name="conditions_paiement"], #conditions-paiement')
-    };
-
-    saveSettings(settings);
-    showToast('Paramètres de facturation enregistrés', 'success');
-}
-
-/**
- * Sauvegarde tous les paramètres
- */
-function saveAllSettings() {
-    const settings = {
-        entreprise: {
-            nom: getInputValue('[name="entreprise_nom"], #entreprise-nom'),
-            siret: getInputValue('[name="entreprise_siret"], #entreprise-siret'),
-            adresse: getInputValue('[name="entreprise_adresse"], #entreprise-adresse'),
-            email: getInputValue('[name="entreprise_email"], #entreprise-email'),
-            telephone: getInputValue('[name="entreprise_telephone"], #entreprise-telephone'),
-            tvaIntracom: getInputValue('[name="entreprise_tva"], #entreprise-tva')
-        },
-        facturation: {
-            tvaDefaut: getInputValue('[name="tva_defaut"], #tva-defaut') || '20',
-            delaiPaiement: getInputValue('[name="delai_paiement"], #delai-paiement') || '30',
-            prefixeDevis: getInputValue('[name="prefixe_devis"], #prefixe-devis') || 'DEV-',
-            prefixeFacture: getInputValue('[name="prefixe_facture"], #prefixe-facture') || 'FAC-',
-            mentionsLegales: getInputValue('[name="mentions_legales"], #mentions-legales'),
-            conditionsPaiement: getInputValue('[name="conditions_paiement"], #conditions-paiement')
-        },
-        display: {
-            theme: getSelectedValue('[name="theme"], [data-theme]:checked, #theme') || 'system',
-            langue: getInputValue('[name="langue"], #langue') || 'fr'
-        },
-        notifications: {
-            email: getCheckboxValue('[name="notif_email"], #notif-email'),
-            devisExpire: getCheckboxValue('[name="notif_devis"], #notif-devis'),
-            factureRetard: getCheckboxValue('[name="notif_facture"], #notif-facture')
-        }
-    };
-
-    saveSettings(settings);
-    showToast('Tous les paramètres ont été enregistrés', 'success');
-}
+let currentLogoBase64 = null;
 
 /**
  * Gère l'upload du logo
  */
-function handleLogoUpload(e) {
-    const file = e.target.files[0];
+function handleLogoUpload(event) {
+    const file = event.target.files[0];
     if (!file) return;
 
-    // Vérifier le type de fichier
+    // Vérifier la taille (max 500KB)
+    if (file.size > 500 * 1024) {
+        showToast('L\'image ne doit pas dépasser 500KB', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    // Vérifier le type
     if (!file.type.startsWith('image/')) {
-        showToast('Veuillez sélectionner une image', 'error');
+        showToast('Veuillez sélectionner une image valide', 'error');
+        event.target.value = '';
         return;
     }
 
-    // Vérifier la taille (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-        showToast('L\'image ne doit pas dépasser 2MB', 'error');
-        return;
-    }
-
+    // Convertir en base64
     const reader = new FileReader();
-    reader.onload = (event) => {
-        const logoBase64 = event.target.result;
+    reader.onload = function(e) {
+        const base64 = e.target.result;
+        currentLogoBase64 = base64;
         
-        // Sauvegarder le logo
-        const settings = getSettings();
-        settings.entreprise = settings.entreprise || {};
-        settings.entreprise.logo = logoBase64;
-        saveSettings(settings);
-
-        // Mettre à jour l'affichage
-        const logoPreview = document.querySelector('#logo-preview, .logo-preview');
-        if (logoPreview) {
-            logoPreview.src = logoBase64;
-            logoPreview.classList.remove('hidden');
+        // Afficher la prévisualisation
+        const preview = document.getElementById('company-logo-preview');
+        if (preview) {
+            preview.src = base64;
         }
-
-        showToast('Logo mis à jour', 'success');
     };
     reader.readAsDataURL(file);
 }
 
 /**
- * Applique le thème
+ * Sauvegarde les informations de l'entreprise dans la BD
  */
-function applyTheme(theme) {
-    const html = document.documentElement;
-    
-    if (theme === 'dark') {
-        html.classList.add('dark');
-    } else if (theme === 'light') {
-        html.classList.remove('dark');
-    } else {
-        // Système
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            html.classList.add('dark');
-        } else {
-            html.classList.remove('dark');
-        }
-    }
-}
+async function saveEntreprise() {
+    const entrepriseData = {
+        nom: document.getElementById('company-name').value,
+        adresse: document.getElementById('company-address').value,
+        ice: document.getElementById('company-ice').value,
+        identifiantFiscal: document.getElementById('company-if').value,
+        rc: document.getElementById('company-rc').value,
+        patente: document.getElementById('company-patente').value,
+        telephone: document.getElementById('company-telephone').value,
+        email: document.getElementById('company-email').value
+    };
 
-/**
- * Récupère les paramètres
- */
-function getSettings() {
+    // Ajouter le logo s'il a été modifié
+    if (currentLogoBase64) {
+        entrepriseData.logo = currentLogoBase64;
+    }
+
     try {
-        return JSON.parse(localStorage.getItem('appSettings') || '{}');
-    } catch {
-        return {};
-    }
-}
-
-/**
- * Sauvegarde les paramètres
- */
-function saveSettings(settings) {
-    const currentSettings = getSettings();
-    const mergedSettings = { ...currentSettings, ...settings };
-    localStorage.setItem('appSettings', JSON.stringify(mergedSettings));
-}
-
-/**
- * Utilitaires pour les formulaires
- */
-function setInputValue(selector, value) {
-    document.querySelectorAll(selector).forEach(el => {
-        if (value !== undefined && value !== null) {
-            el.value = value;
+        // Essayer de mettre à jour d'abord, sinon créer
+        try {
+            await API.Entreprise.update(entrepriseData);
+        } catch (e) {
+            await API.Entreprise.save(entrepriseData);
         }
-    });
-}
-
-function getInputValue(selector) {
-    const el = document.querySelector(selector);
-    return el ? el.value.trim() : '';
-}
-
-function setCheckboxValue(selector, value) {
-    document.querySelectorAll(selector).forEach(el => {
-        el.checked = !!value;
-    });
-}
-
-function getCheckboxValue(selector) {
-    const el = document.querySelector(selector);
-    return el ? el.checked : false;
-}
-
-function getSelectedValue(selector) {
-    const el = document.querySelector(selector);
-    if (!el) return '';
-    if (el.type === 'radio' || el.type === 'checkbox') {
-        return el.checked ? el.value : '';
+        
+        // Mettre à jour le nom dans localStorage et le sidebar
+        if (entrepriseData.nom) {
+            localStorage.setItem('entrepriseNom', entrepriseData.nom);
+            // Mettre à jour le sidebar dynamiquement
+            if (typeof updateSidebarEntrepriseName === 'function') {
+                updateSidebarEntrepriseName(entrepriseData.nom);
+            } else {
+                // Fallback: mettre à jour directement l'élément
+                const sidebarName = document.getElementById('sidebar-entreprise-name');
+                if (sidebarName) {
+                    sidebarName.textContent = entrepriseData.nom;
+                }
+            }
+            // Mettre à jour le titre de la page
+            if (window.AppLoader && typeof window.AppLoader.updatePageTitle === 'function') {
+                window.AppLoader.updatePageTitle();
+            }
+        }
+        
+        // Mettre à jour le logo dans localStorage et le favicon
+        if (entrepriseData.logo) {
+            localStorage.setItem('entrepriseLogo', entrepriseData.logo);
+            // Mettre à jour le favicon dynamiquement
+            if (window.AppLoader && typeof window.AppLoader.updateFavicon === 'function') {
+                window.AppLoader.updateFavicon();
+            }
+            // Mettre à jour le logo dans le sidebar
+            if (typeof updateSidebarLogo === 'function') {
+                updateSidebarLogo(entrepriseData.logo);
+            } else {
+                // Fallback: mettre à jour directement l'élément
+                const sidebarLogo = document.getElementById('sidebar-logo-container');
+                if (sidebarLogo) {
+                    sidebarLogo.innerHTML = `<img src="${entrepriseData.logo}" alt="Logo" class="w-8 h-8 rounded-lg object-cover">`;
+                }
+            }
+        }
+        
+        showToast('Informations entreprise enregistrées avec succès', 'success');
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        showToast('Erreur lors de la sauvegarde des informations', 'error');
     }
-    return el.value;
 }
 
 /**
- * Affiche un toast (utilise Utils si disponible)
+ * Sauvegarde le profil utilisateur dans la BD
+ */
+async function saveProfile() {
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    const userId = userData.id || localStorage.getItem('userId');
+    
+    if (!userId) {
+        showToast('Erreur: utilisateur non identifié. Veuillez vous reconnecter.', 'error');
+        return;
+    }
+
+    const profileData = {
+        prenom: document.getElementById('prenom').value,
+        nom: document.getElementById('nom').value
+    };
+
+    try {
+        const updatedUser = await API.Users.updateProfile(userId, profileData);
+        
+        // Mettre à jour le localStorage
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        
+        // Mettre à jour l'affichage
+        const fullName = [updatedUser.prenom, updatedUser.nom].filter(Boolean).join(' ') || 'Utilisateur';
+        const userName = document.getElementById('user-name');
+        if (userName) userName.textContent = fullName;
+        
+        showToast('Profil mis à jour avec succès', 'success');
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du profil:', error);
+        showToast('Erreur lors de la mise à jour du profil', 'error');
+    }
+}
+
+/**
+ * Change le mot de passe de l'utilisateur dans la BD
+ */
+async function changePassword() {
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    const userId = userData.id || localStorage.getItem('userId');
+    
+    if (!userId) {
+        showToast('Erreur: utilisateur non identifié. Veuillez vous reconnecter.', 'error');
+        return;
+    }
+
+    const currentPassword = document.getElementById('current-password').value;
+    const newPassword = document.getElementById('new-password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    // Validations
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showToast('Veuillez remplir tous les champs', 'error');
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        showToast('Les nouveaux mots de passe ne correspondent pas', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showToast('Le nouveau mot de passe doit contenir au moins 6 caractères', 'error');
+        return;
+    }
+
+    try {
+        await API.Users.changePassword(userId, {
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        });
+        
+        // Vider les champs
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+        
+        showToast('Mot de passe modifié avec succès', 'success');
+    } catch (error) {
+        console.error('Erreur lors du changement de mot de passe:', error);
+        showToast(error.message || 'Mot de passe actuel incorrect', 'error');
+    }
+}
+
+/**
+ * Change l'email de l'utilisateur dans la BD
+ */
+async function changeEmail() {
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    const userId = userData.id || localStorage.getItem('userId');
+    
+    if (!userId) {
+        showToast('Erreur: utilisateur non identifié. Veuillez vous reconnecter.', 'error');
+        return;
+    }
+
+    const currentEmail = document.getElementById('current-email').value;
+    const newEmail = document.getElementById('new-email').value;
+
+    // Validations
+    if (!newEmail) {
+        showToast('Veuillez saisir le nouvel email', 'error');
+        return;
+    }
+
+    // Validation format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+        showToast('Veuillez saisir un email valide', 'error');
+        return;
+    }
+
+    if (newEmail === currentEmail) {
+        showToast('Le nouvel email doit être différent de l\'email actuel', 'error');
+        return;
+    }
+
+    try {
+        // Mettre à jour l'utilisateur avec le nouvel email
+        const updatedUser = await API.Users.updateProfile(userId, { email: newEmail });
+        
+        // Mettre à jour le localStorage
+        userData.email = newEmail;
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userEmail', newEmail);
+        
+        // Mettre à jour l'affichage
+        const userEmailDisplay = document.getElementById('user-email');
+        if (userEmailDisplay) userEmailDisplay.textContent = newEmail;
+        
+        // Mettre à jour le champ email actuel
+        document.getElementById('current-email').value = newEmail;
+        
+        // Vider le champ nouvel email
+        document.getElementById('new-email').value = '';
+        
+        showToast('Email modifié avec succès', 'success');
+    } catch (error) {
+        console.error('Erreur lors du changement d\'email:', error);
+        showToast(error.message || 'Erreur lors du changement d\'email', 'error');
+    }
+}
+
+/**
+ * Affiche un toast
  */
 function showToast(message, type = 'info') {
     if (window.Utils && window.Utils.showToast) {
@@ -345,10 +456,10 @@ function showToast(message, type = 'info') {
 
 // Export pour utilisation globale
 window.SettingsPage = {
-    loadSettings,
-    saveAllSettings,
-    saveEntrepriseSettings,
-    saveFacturationSettings,
-    getSettings,
-    applyTheme
+    loadUserProfile,
+    loadEntreprise,
+    saveEntreprise,
+    saveProfile,
+    changePassword,
+    changeEmail
 };

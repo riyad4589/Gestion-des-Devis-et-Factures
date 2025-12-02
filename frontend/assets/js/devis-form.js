@@ -117,28 +117,38 @@ function populateProduitSelect() {
 async function loadDevis() {
     try {
         const devis = await API.Devis.getById(devisId);
+        console.log('Devis chargé:', devis);
         
-        // Remplir les champs
+        // Remplir les champs - utiliser clientId du DTO ou client.id en fallback
         const clientSelect = document.querySelector('[name="clientId"], #clientId, select');
-        if (clientSelect) clientSelect.value = devis.client?.id || '';
+        if (clientSelect) {
+            const clientIdValue = devis.clientId || devis.client?.id || '';
+            clientSelect.value = clientIdValue;
+        }
 
+        // Utiliser dateDevis du DTO ou dateCreation en fallback
         const dateCreation = document.querySelector('[name="dateCreation"], #dateCreation');
-        if (dateCreation) dateCreation.value = devis.dateCreation?.split('T')[0] || '';
+        if (dateCreation) {
+            const dateValue = devis.dateDevis || devis.dateCreation || '';
+            dateCreation.value = dateValue ? dateValue.split('T')[0] : '';
+        }
 
         const dateValidite = document.querySelector('[name="dateValidite"], #dateValidite');
-        if (dateValidite) dateValidite.value = devis.dateValidite?.split('T')[0] || '';
+        if (dateValidite && devis.dateValidite) {
+            dateValidite.value = devis.dateValidite.split('T')[0];
+        }
 
         const notes = document.querySelector('[name="notes"], #notes, textarea');
-        if (notes) notes.value = devis.notes || '';
+        if (notes) notes.value = devis.notes || devis.remarques || '';
 
-        // Charger les lignes
+        // Charger les lignes - utiliser produitId du DTO ou produit.id en fallback
         if (devis.lignes && devis.lignes.length > 0) {
             lignesDevis = devis.lignes.map(ligne => ({
-                produitId: ligne.produit?.id,
-                designation: ligne.designation,
-                quantite: ligne.quantite,
-                prixUnitaireHT: ligne.prixUnitaireHT,
-                tauxTVA: ligne.tauxTVA || 20
+                produitId: ligne.produitId || ligne.produit?.id,
+                designation: ligne.produitNom || ligne.designation || ligne.produit?.nom || '',
+                quantite: parseInt(ligne.quantite) || 1,
+                prixUnitaireHT: parseFloat(ligne.prixUnitaireHT) || 0,
+                tauxTVA: parseFloat(ligne.tva) || parseFloat(ligne.tauxTVA) || 20
             }));
             renderLignes();
         } else {

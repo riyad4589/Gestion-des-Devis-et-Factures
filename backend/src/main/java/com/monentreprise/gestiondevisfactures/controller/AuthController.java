@@ -82,6 +82,34 @@ public class AuthController {
     }
 
     /**
+     * Récupère un utilisateur par email
+     * GET /api/auth/users/email/{email}
+     */
+    @GetMapping("/users/email/{email}")
+    public ResponseEntity<UserDTO> getUserByEmail(@PathVariable String email) {
+        return userService.getUserByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Change le mot de passe d'un utilisateur
+     * PUT /api/auth/users/{id}/password
+     */
+    @PutMapping("/users/{id}/password")
+    public ResponseEntity<?> changePassword(@PathVariable Long id, @RequestBody java.util.Map<String, String> passwordData) {
+        try {
+            String currentPassword = passwordData.get("currentPassword");
+            String newPassword = passwordData.get("newPassword");
+            
+            userService.changePassword(id, currentPassword, newPassword);
+            return ResponseEntity.ok(new LoginResponse(true, "Mot de passe modifié avec succès"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new LoginResponse(false, e.getMessage()));
+        }
+    }
+
+    /**
      * Supprime un utilisateur
      * DELETE /api/auth/users/{id}
      */

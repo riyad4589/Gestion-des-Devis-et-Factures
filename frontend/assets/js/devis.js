@@ -140,13 +140,12 @@ function renderDevis(devis) {
             <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span class="text-sm font-medium text-primary">${d.client?.nom?.charAt(0) || '?'}</span>
+                        <span class="text-sm font-medium text-primary">${(d.clientNom || d.client?.nom || '?').charAt(0)}</span>
                     </div>
-                    <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(d.client?.nom || 'Client inconnu')}</span>
+                    <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(d.clientNom || d.client?.nom || 'Client inconnu')}</span>
                 </div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(d.dateDevis)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">-</td>
             <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(d.totalTTC)}</td>
             <td class="px-4 py-3">${Utils.getDevisStatusBadge(d.statut)}</td>
             <td class="px-4 py-3">
@@ -154,27 +153,24 @@ function renderDevis(devis) {
                     <button onclick="viewDevis(${d.id})" class="p-2 rounded-lg hover:bg-primary/10 text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" title="Voir">
                         <span class="material-symbols-outlined text-xl">visibility</span>
                     </button>
-                    ${d.statut === 'BROUILLON' ? `
-                        <button onclick="editDevis(${d.id})" class="p-2 rounded-lg hover:bg-primary/10 text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" title="Modifier">
+                    ${d.statut === 'EN_COURS' ? `
+                        <button onclick="editDevis(${d.id})" class="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors" title="Modifier">
                             <span class="material-symbols-outlined text-xl">edit</span>
                         </button>
-                    ` : ''}
-                    ${d.statut === 'ENVOYE' ? `
-                        <button onclick="accepterDevis(${d.id})" class="p-2 rounded-lg hover:bg-green-100 text-gray-600 dark:text-gray-400 hover:text-green-600 transition-colors" title="Accepter">
+                        <button onclick="validerDevis(${d.id})" class="p-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-gray-600 dark:text-gray-400 hover:text-green-600 transition-colors" title="Valider le devis">
                             <span class="material-symbols-outlined text-xl">check_circle</span>
                         </button>
-                        <button onclick="refuserDevis(${d.id})" class="p-2 rounded-lg hover:bg-red-100 text-gray-600 dark:text-gray-400 hover:text-red-600 transition-colors" title="Refuser">
-                            <span class="material-symbols-outlined text-xl">cancel</span>
-                        </button>
                     ` : ''}
-                    ${d.statut === 'ACCEPTE' ? `
-                        <button onclick="convertirDevis(${d.id})" class="p-2 rounded-lg hover:bg-blue-100 text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors" title="Convertir en facture">
+                    ${d.statut === 'VALIDE' ? `
+                        <button onclick="convertirDevis(${d.id})" class="p-2 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors" title="Convertir en facture">
                             <span class="material-symbols-outlined text-xl">receipt</span>
                         </button>
                     ` : ''}
-                    <button onclick="deleteDevis(${d.id})" class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 transition-colors" title="Supprimer">
-                        <span class="material-symbols-outlined text-xl">delete</span>
-                    </button>
+                    ${d.statut === 'EN_COURS' || d.statut === 'ANNULE' ? `
+                        <button onclick="deleteDevis(${d.id})" class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 transition-colors" title="Supprimer">
+                            <span class="material-symbols-outlined text-xl">delete</span>
+                        </button>
+                    ` : ''}
                 </div>
             </td>
         </tr>
@@ -190,11 +186,17 @@ function filterDevis(searchTerm) {
     if (!term) {
         filteredDevis = [...allDevis];
     } else {
-        filteredDevis = allDevis.filter(devis => 
-            String(devis.id).includes(term) ||
-            (devis.client?.nom && devis.client.nom.toLowerCase().includes(term)) ||
-            (devis.statut && devis.statut.toLowerCase().includes(term))
-        );
+        filteredDevis = allDevis.filter(devis => {
+            // Recherche par numéro de devis
+            const numeroDevis = (devis.numeroDevis || `DEV-${String(devis.id).padStart(4, '0')}`).toLowerCase();
+            if (numeroDevis.includes(term)) return true;
+            
+            // Recherche par nom du client
+            const clientNom = (devis.clientNom || devis.client?.nom || '').toLowerCase();
+            if (clientNom.includes(term)) return true;
+            
+            return false;
+        });
     }
     
     renderDevis(filteredDevis);
@@ -225,6 +227,44 @@ function viewDevis(id) {
  */
 function editDevis(id) {
     window.location.href = `écran_création_d'un_devis.html?id=${id}`;
+}
+
+/**
+ * Valider un devis (passer de EN_COURS à VALIDE)
+ */
+async function validerDevis(id) {
+    Utils.showConfirm(
+        'Êtes-vous sûr de vouloir valider ce devis ?',
+        async () => {
+            try {
+                await API.Devis.valider(id);
+                Utils.showToast('Devis validé avec succès', 'success');
+                loadDevis();
+            } catch (error) {
+                console.error('Erreur lors de la validation:', error);
+                Utils.showToast('Erreur lors de la validation du devis', 'error');
+            }
+        }
+    );
+}
+
+/**
+ * Annuler un devis
+ */
+async function annulerDevis(id) {
+    Utils.showConfirm(
+        'Êtes-vous sûr de vouloir annuler ce devis ?',
+        async () => {
+            try {
+                await API.Devis.annuler(id);
+                Utils.showToast('Devis annulé', 'success');
+                loadDevis();
+            } catch (error) {
+                console.error('Erreur lors de l\'annulation:', error);
+                Utils.showToast('Erreur lors de l\'annulation du devis', 'error');
+            }
+        }
+    );
 }
 
 /**
@@ -273,7 +313,7 @@ async function convertirDevis(id) {
         'Êtes-vous sûr de vouloir convertir ce devis en facture ?',
         async () => {
             try {
-                const facture = await API.Devis.convertir(id);
+                const facture = await API.Devis.convertirEnFacture(id);
                 Utils.showToast('Devis converti en facture avec succès', 'success');
                 // Rediriger vers la facture créée
                 setTimeout(() => {
@@ -360,6 +400,8 @@ window.DevisPage = {
     loadDevis,
     viewDevis,
     editDevis,
+    validerDevis,
+    annulerDevis,
     accepterDevis,
     refuserDevis,
     convertirDevis,
@@ -371,6 +413,8 @@ window.DevisPage = {
 // Exposer les fonctions globalement pour le HTML onclick
 window.viewDevis = viewDevis;
 window.editDevis = editDevis;
+window.validerDevis = validerDevis;
+window.annulerDevis = annulerDevis;
 window.accepterDevis = accepterDevis;
 window.refuserDevis = refuserDevis;
 window.convertirDevis = convertirDevis;

@@ -82,70 +82,39 @@ async function loadClientHistory() {
  * Affiche les informations du client
  */
 function displayClientInfo(client) {
-    // Nom du client
-    const nameElements = document.querySelectorAll('h1, h2, .client-name');
-    nameElements.forEach(el => {
-        if (el.textContent.includes('Client') || el.classList.contains('client-name')) {
-            el.textContent = client.nom;
-        }
-    });
+    // Nom du client dans le fil d'ariane
+    const breadcrumbName = document.getElementById('client-name');
+    if (breadcrumbName) {
+        breadcrumbName.textContent = client.nom;
+    }
+
+    // Nom du client dans la carte
+    const nameDisplay = document.getElementById('client-name-display');
+    if (nameDisplay) {
+        nameDisplay.textContent = client.nom;
+    }
 
     // Email
-    const emailEl = document.querySelector('[data-client-email], .client-email');
+    const emailEl = document.getElementById('client-email');
     if (emailEl) {
-        emailEl.textContent = client.email;
+        emailEl.textContent = client.email || '--';
     }
 
     // Téléphone
-    const phoneEl = document.querySelector('[data-client-phone], .client-phone');
+    const phoneEl = document.getElementById('client-phone');
     if (phoneEl) {
         phoneEl.textContent = client.telephone || 'Non renseigné';
     }
-
-    // Adresse
-    const addressEl = document.querySelector('[data-client-address], .client-address');
-    if (addressEl) {
-        addressEl.textContent = client.adresse || 'Non renseignée';
-    }
-
-    // Date de création
-    const dateEl = document.querySelector('[data-client-date], .client-date');
-    if (dateEl) {
-        dateEl.textContent = `Client depuis le ${Utils.formatDate(client.dateCreation)}`;
-    }
-
-    // Statut
-    const statusEl = document.querySelector('[data-client-status], .client-status');
-    if (statusEl) {
-        if (client.actif) {
-            statusEl.innerHTML = '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Actif</span>';
-        } else {
-            statusEl.innerHTML = '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>Inactif</span>';
-        }
-    }
-
-    // Remplir les informations dans les cartes d'info si présentes
-    const infoCards = document.querySelectorAll('.info-card, .bg-white.rounded-xl');
-    infoCards.forEach(card => {
-        const text = card.textContent.toLowerCase();
-        if (text.includes('email')) {
-            const valueEl = card.querySelector('p:last-child, .value');
-            if (valueEl) valueEl.textContent = client.email;
-        } else if (text.includes('téléphone')) {
-            const valueEl = card.querySelector('p:last-child, .value');
-            if (valueEl) valueEl.textContent = client.telephone || 'Non renseigné';
-        }
-    });
 }
 
 /**
  * Affiche la liste des devis
  */
 function displayDevis(devis) {
-    const tbody = document.querySelector('#devis-table tbody, [data-devis-list] tbody, table:first-of-type tbody');
+    const tbody = document.getElementById('devis-table-body');
     if (!tbody) return;
 
-    if (devis.length === 0) {
+    if (!devis || devis.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="5" class="px-6 py-8 text-center text-gray-500">
@@ -158,11 +127,11 @@ function displayDevis(devis) {
 
     tbody.innerHTML = devis.map(d => `
         <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">DEV-${String(d.id).padStart(4, '0')}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(d.dateCreation)}</td>
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(d.montantTTC)}</td>
-            <td class="px-4 py-3">${Utils.getDevisStatusBadge(d.statut)}</td>
-            <td class="px-4 py-3">
+            <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${d.numeroDevis || 'DEV-' + String(d.id).padStart(4, '0')}</td>
+            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(d.dateDevis)}</td>
+            <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(d.totalTTC)}</td>
+            <td class="px-6 py-4">${Utils.getDevisStatutBadge ? Utils.getDevisStatutBadge(d.statut) : getDevisStatusBadge(d.statut)}</td>
+            <td class="px-6 py-4 text-right">
                 <button onclick="viewDevis(${d.id})" class="p-2 rounded-lg hover:bg-primary/10 text-gray-600 hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-xl">visibility</span>
                 </button>
@@ -175,10 +144,10 @@ function displayDevis(devis) {
  * Affiche la liste des factures
  */
 function displayFactures(factures) {
-    const tbody = document.querySelector('#factures-table tbody, [data-factures-list] tbody, table:last-of-type tbody');
+    const tbody = document.getElementById('factures-table-body');
     if (!tbody) return;
 
-    if (factures.length === 0) {
+    if (!factures || factures.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="5" class="px-6 py-8 text-center text-gray-500">
@@ -191,11 +160,11 @@ function displayFactures(factures) {
 
     tbody.innerHTML = factures.map(f => `
         <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">FAC-${String(f.id).padStart(4, '0')}</td>
-            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(f.dateCreation)}</td>
-            <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(f.montantTTC)}</td>
-            <td class="px-4 py-3">${Utils.getFactureStatusBadge(f.statut)}</td>
-            <td class="px-4 py-3">
+            <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${f.numeroFacture || 'FAC-' + String(f.id).padStart(4, '0')}</td>
+            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatDate(f.dateFacture)}</td>
+            <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${Utils.formatCurrency(f.montantTTC)}</td>
+            <td class="px-6 py-4">${Utils.getFactureStatutBadge ? Utils.getFactureStatutBadge(f.statut) : getFactureStatusBadge(f.statut)}</td>
+            <td class="px-6 py-4 text-right">
                 <button onclick="viewFacture(${f.id})" class="p-2 rounded-lg hover:bg-primary/10 text-gray-600 hover:text-primary transition-colors">
                     <span class="material-symbols-outlined text-xl">visibility</span>
                 </button>
@@ -209,51 +178,50 @@ function displayFactures(factures) {
  */
 function calculateStats(devis, factures) {
     // Total des devis
-    const totalDevis = devis.length;
-    const montantDevis = devis.reduce((sum, d) => sum + (d.montantTTC || 0), 0);
+    const totalDevis = devis ? devis.length : 0;
+    const montantDevis = devis ? devis.reduce((sum, d) => sum + (d.totalTTC || 0), 0) : 0;
 
     // Total des factures
-    const totalFactures = factures.length;
-    const montantFactures = factures.reduce((sum, f) => sum + (f.montantTTC || 0), 0);
+    const totalFactures = factures ? factures.length : 0;
+    const montantFactures = factures ? factures.reduce((sum, f) => sum + (f.montantTTC || 0), 0) : 0;
 
-    // Factures payées
-    const facturesPayees = factures.filter(f => f.statut === 'PAYEE');
-    const montantPaye = facturesPayees.reduce((sum, f) => sum + (f.montantTTC || 0), 0);
+    // Mettre à jour les stats dans l'interface par ID
+    const statDevis = document.getElementById('stat-devis');
+    if (statDevis) statDevis.textContent = totalDevis;
 
-    // Mettre à jour les stats dans l'interface
-    const statsElements = document.querySelectorAll('.stat-value, .stats-card h3, [data-stat]');
-    statsElements.forEach(el => {
-        const parent = el.closest('.stat-card, .bg-white, div');
-        const text = parent ? parent.textContent.toLowerCase() : '';
+    const statFactures = document.getElementById('stat-factures');
+    if (statFactures) statFactures.textContent = totalFactures;
 
-        if (text.includes('devis')) {
-            el.textContent = totalDevis.toString();
-        } else if (text.includes('facture') && !text.includes('payé')) {
-            el.textContent = totalFactures.toString();
-        } else if (text.includes('chiffre') || text.includes('total')) {
-            el.textContent = Utils.formatCurrency(montantFactures);
-        } else if (text.includes('payé')) {
-            el.textContent = Utils.formatCurrency(montantPaye);
-        }
-    });
+    const statTotal = document.getElementById('stat-total');
+    if (statTotal) statTotal.textContent = Utils.formatCurrency(montantFactures);
+}
 
-    // Chercher les cartes de stats par leur structure
-    const cards = document.querySelectorAll('.bg-white.rounded-xl, .stat-card');
-    cards.forEach(card => {
-        const label = card.querySelector('p, span, .label');
-        const value = card.querySelector('h2, h3, .value, .text-2xl');
-        
-        if (label && value) {
-            const labelText = label.textContent.toLowerCase();
-            if (labelText.includes('devis')) {
-                value.textContent = totalDevis;
-            } else if (labelText.includes('facture')) {
-                value.textContent = totalFactures;
-            } else if (labelText.includes('total') || labelText.includes('chiffre')) {
-                value.textContent = Utils.formatCurrency(montantFactures);
-            }
-        }
-    });
+/**
+ * Génère le badge de statut pour un devis
+ */
+function getDevisStatusBadge(statut) {
+    const statusConfig = {
+        'EN_COURS': { text: 'En cours', class: 'bg-yellow-100 text-yellow-800' },
+        'VALIDE': { text: 'Validé', class: 'bg-green-100 text-green-800' },
+        'TRANSFORME_EN_FACTURE': { text: 'Converti', class: 'bg-blue-100 text-blue-800' },
+        'ANNULE': { text: 'Annulé', class: 'bg-red-100 text-red-800' }
+    };
+    const config = statusConfig[statut] || { text: statut, class: 'bg-gray-100 text-gray-800' };
+    return `<span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${config.class}">${config.text}</span>`;
+}
+
+/**
+ * Génère le badge de statut pour une facture
+ */
+function getFactureStatusBadge(statut) {
+    const statusConfig = {
+        'NON_PAYEE': { text: 'Non payée', class: 'bg-yellow-100 text-yellow-800' },
+        'PARTIELLEMENT_PAYEE': { text: 'Partiellement payée', class: 'bg-orange-100 text-orange-800' },
+        'PAYEE': { text: 'Payée', class: 'bg-green-100 text-green-800' },
+        'ANNULEE': { text: 'Annulée', class: 'bg-red-100 text-red-800' }
+    };
+    const config = statusConfig[statut] || { text: statut, class: 'bg-gray-100 text-gray-800' };
+    return `<span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold ${config.class}">${config.text}</span>`;
 }
 
 /**
@@ -272,13 +240,16 @@ function switchTab(tabName) {
     });
 
     // Afficher le contenu de l'onglet
-    document.querySelectorAll('[data-tab-content]').forEach(content => {
-        if (content.dataset.tabContent === tabName) {
-            content.classList.remove('hidden');
-        } else {
-            content.classList.add('hidden');
-        }
-    });
+    const devisContent = document.getElementById('tab-content-devis');
+    const facturesContent = document.getElementById('tab-content-factures');
+    
+    if (tabName === 'devis') {
+        if (devisContent) devisContent.classList.remove('hidden');
+        if (facturesContent) facturesContent.classList.add('hidden');
+    } else if (tabName === 'factures') {
+        if (devisContent) devisContent.classList.add('hidden');
+        if (facturesContent) facturesContent.classList.remove('hidden');
+    }
 }
 
 /**

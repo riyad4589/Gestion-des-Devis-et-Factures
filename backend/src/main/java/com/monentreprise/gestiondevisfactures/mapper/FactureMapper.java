@@ -36,6 +36,8 @@ public class FactureMapper {
             dto.setClientId(facture.getClient().getId());
             dto.setClientNom(facture.getClient().getNom());
             dto.setClientEmail(facture.getClient().getEmail());
+            dto.setClientTelephone(facture.getClient().getTelephone());
+            dto.setClientAdresse(facture.getClient().getAdresse());
         }
         
         if (facture.getDevisOrigine() != null) {

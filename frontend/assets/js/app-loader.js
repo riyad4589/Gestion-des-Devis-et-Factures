@@ -7,6 +7,18 @@
 (function() {
     'use strict';
 
+    // Nom par défaut de l'entreprise
+    const DEFAULT_COMPANY_NAME = 'GestFacture';
+    
+    // Clé de stockage local pour le nom de l'entreprise (même clé que parametres.js)
+    const COMPANY_NAME_KEY = 'entrepriseNom';
+    
+    // Clé de stockage local pour le logo de l'entreprise
+    const COMPANY_LOGO_KEY = 'entrepriseLogo';
+    
+    // Chemin par défaut de l'icône
+    const DEFAULT_FAVICON = 'assets/icon/icon.PNG';
+
     // Configuration des scripts par page
     const PAGE_SCRIPTS = {
         'dashboard': ['api.js', 'navigation.js', 'auth.js', 'dashboard.js'],
@@ -150,14 +162,121 @@
         }
     }
 
+    /**
+     * Récupère le nom de l'entreprise depuis le localStorage ou l'API
+     */
+    async function getCompanyName() {
+        // D'abord, vérifier le localStorage
+        const cachedName = localStorage.getItem(COMPANY_NAME_KEY);
+        if (cachedName) {
+            return cachedName;
+        }
+        
+        // Sinon, essayer de récupérer depuis l'API
+        try {
+            const response = await fetch('http://localhost:8080/api/entreprise');
+            if (response.ok) {
+                const entreprise = await response.json();
+                if (entreprise && entreprise.nom) {
+                    localStorage.setItem(COMPANY_NAME_KEY, entreprise.nom);
+                    return entreprise.nom;
+                }
+            }
+        } catch (e) {
+            console.log('Impossible de récupérer le nom de l\'entreprise depuis l\'API');
+        }
+        
+        return DEFAULT_COMPANY_NAME;
+    }
+
+    /**
+     * Met à jour le titre de la page avec le nom de l'entreprise
+     */
+    async function updatePageTitle() {
+        const companyName = await getCompanyName();
+        const currentTitle = document.title;
+        
+        // Remplacer "GestFacture" par le nom de l'entreprise
+        if (currentTitle.includes('GestFacture')) {
+            document.title = currentTitle.replace('GestFacture', companyName);
+        } else if (!currentTitle.includes(companyName)) {
+            // Si le titre ne contient pas déjà le nom de l'entreprise
+            document.title = `${companyName} - ${currentTitle}`;
+        }
+    }
+
+    /**
+     * Récupère le logo de l'entreprise depuis le localStorage ou l'API
+     */
+    async function getCompanyLogo() {
+        // D'abord, vérifier le localStorage
+        const cachedLogo = localStorage.getItem(COMPANY_LOGO_KEY);
+        if (cachedLogo) {
+            return cachedLogo;
+        }
+        
+        // Sinon, essayer de récupérer depuis l'API
+        try {
+            const response = await fetch('http://localhost:8080/api/entreprise');
+            if (response.ok) {
+                const entreprise = await response.json();
+                if (entreprise && entreprise.logo) {
+                    localStorage.setItem(COMPANY_LOGO_KEY, entreprise.logo);
+                    return entreprise.logo;
+                }
+            }
+        } catch (e) {
+            console.log('Impossible de récupérer le logo depuis l\'API');
+        }
+        
+        return null; // Retourner null pour utiliser le favicon par défaut
+    }
+
+    /**
+     * Met à jour le favicon avec le logo de l'entreprise
+     */
+    async function updateFavicon() {
+        const logo = await getCompanyLogo();
+        
+        // Trouver ou créer l'élément link pour le favicon
+        let favicon = document.querySelector('link[rel="icon"]');
+        
+        if (!favicon) {
+            favicon = document.createElement('link');
+            favicon.rel = 'icon';
+            document.head.appendChild(favicon);
+        }
+        
+        if (logo) {
+            // Utiliser le logo de l'entreprise
+            favicon.href = logo;
+            favicon.type = logo.startsWith('data:image/png') ? 'image/png' : 
+                          logo.startsWith('data:image/gif') ? 'image/gif' : 'image/jpeg';
+        } else {
+            // Utiliser le favicon par défaut
+            favicon.href = DEFAULT_FAVICON;
+            favicon.type = 'image/png';
+        }
+    }
+
     // Démarrer l'initialisation
     initApp();
+
+    // Mettre à jour le titre de la page
+    updatePageTitle();
+    
+    // Mettre à jour le favicon
+    updateFavicon();
 
     // Export pour debug
     window.AppLoader = {
         detectCurrentPage,
         loadScript,
-        PAGE_SCRIPTS
+        PAGE_SCRIPTS,
+        updatePageTitle,
+        getCompanyName,
+        updateFavicon,
+        getCompanyLogo
     };
 
 })();

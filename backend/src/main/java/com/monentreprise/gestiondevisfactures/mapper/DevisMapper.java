@@ -36,6 +36,8 @@ public class DevisMapper {
             dto.setClientId(devis.getClient().getId());
             dto.setClientNom(devis.getClient().getNom());
             dto.setClientEmail(devis.getClient().getEmail());
+            dto.setClientTelephone(devis.getClient().getTelephone());
+            dto.setClientAdresse(devis.getClient().getAdresse());
         }
         
         if (devis.getLignes() != null) {

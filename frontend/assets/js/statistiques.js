@@ -45,22 +45,19 @@ function setupEventListeners() {
  */
 async function loadStatistiques(period = 'month') {
     try {
-        // Charger les données des stats
-        const stats = await API.Statistiques.getAll();
-        
         // Charger les données détaillées en parallèle
         const [clients, devis, factures, produits] = await Promise.all([
-            API.Clients.getAll(),
-            API.Devis.getAll(),
-            API.Factures.getAll(),
-            API.Produits.getAll()
+            API.Clients.getAll().catch(() => []),
+            API.Devis.getAll().catch(() => []),
+            API.Factures.getAll().catch(() => []),
+            API.Produits.getAll().catch(() => [])
         ]);
 
         // Calculer les statistiques
         const calculatedStats = calculateStats(clients, devis, factures, produits, period);
 
         // Afficher les KPIs
-        displayKPIs(stats, calculatedStats);
+        displayKPIs(null, calculatedStats);
 
         // Afficher les graphiques
         displayCharts(calculatedStats);
@@ -70,7 +67,8 @@ async function loadStatistiques(period = 'month') {
 
     } catch (error) {
         console.error('Erreur lors du chargement des statistiques:', error);
-        Utils.showToast('Erreur lors du chargement des statistiques', 'error');
+        // Afficher les données vides au lieu d'une erreur
+        displayEmptyState();
     }
 }
 
@@ -81,37 +79,46 @@ function calculateStats(clients, devis, factures, produits, period) {
     const now = new Date();
     const startOfPeriod = getStartOfPeriod(now, period);
 
-    // Filtrer par période
-    const devisPeriod = devis.filter(d => new Date(d.dateCreation) >= startOfPeriod);
-    const facturesPeriod = factures.filter(f => new Date(f.dateCreation) >= startOfPeriod);
+    // Filtrer par période (utiliser dateFacture ou dateCreation)
+    const devisPeriod = devis.filter(d => {
+        const date = d.dateDevis || d.dateCreation;
+        return date && new Date(date) >= startOfPeriod;
+    });
+    const facturesPeriod = factures.filter(f => {
+        const date = f.dateFacture || f.dateCreation;
+        return date && new Date(date) >= startOfPeriod;
+    });
 
     // Statistiques de base
     const stats = {
         // Clients
         totalClients: clients.length,
         clientsActifs: clients.filter(c => c.actif).length,
-        nouveauxClients: clients.filter(c => new Date(c.dateCreation) >= startOfPeriod).length,
+        nouveauxClients: clients.filter(c => {
+            const date = c.dateCreation;
+            return date && new Date(date) >= startOfPeriod;
+        }).length,
 
-        // Devis
+        // Devis - Statuts: EN_COURS, VALIDE, TRANSFORME_EN_FACTURE, ANNULE
         totalDevis: devis.length,
         devisPeriod: devisPeriod.length,
-        devisBrouillon: devis.filter(d => d.statut === 'BROUILLON').length,
-        devisEnvoye: devis.filter(d => d.statut === 'ENVOYE').length,
-        devisAccepte: devis.filter(d => d.statut === 'ACCEPTE').length,
-        devisRefuse: devis.filter(d => d.statut === 'REFUSE').length,
-        devisConverti: devis.filter(d => d.statut === 'CONVERTI').length,
-        montantDevis: devis.reduce((sum, d) => sum + (d.montantTTC || 0), 0),
-        montantDevisPeriod: devisPeriod.reduce((sum, d) => sum + (d.montantTTC || 0), 0),
+        devisEnCours: devis.filter(d => d.statut === 'EN_COURS').length,
+        devisValide: devis.filter(d => d.statut === 'VALIDE').length,
+        devisTransforme: devis.filter(d => d.statut === 'TRANSFORME_EN_FACTURE').length,
+        // Devis acceptés = VALIDE + TRANSFORME_EN_FACTURE (accepté par le client)
+        devisAcceptes: devis.filter(d => d.statut === 'VALIDE' || d.statut === 'TRANSFORME_EN_FACTURE').length,
+        montantDevis: devis.reduce((sum, d) => sum + (parseFloat(d.totalTTC || d.montantTTC) || 0), 0),
+        montantDevisPeriod: devisPeriod.reduce((sum, d) => sum + (parseFloat(d.totalTTC || d.montantTTC) || 0), 0),
 
-        // Factures
+        // Factures - Statuts: NON_PAYEE, PARTIELLEMENT_PAYEE, PAYEE, ANNULEE
         totalFactures: factures.length,
         facturesPeriod: facturesPeriod.length,
         facturesPayees: factures.filter(f => f.statut === 'PAYEE').length,
-        facturesEnAttente: factures.filter(f => f.statut === 'ENVOYEE').length,
-        facturesEnRetard: factures.filter(f => f.statut === 'EN_RETARD').length,
-        chiffreAffaires: factures.filter(f => f.statut === 'PAYEE').reduce((sum, f) => sum + (f.montantTTC || 0), 0),
-        chiffreAffairesPeriod: facturesPeriod.filter(f => f.statut === 'PAYEE').reduce((sum, f) => sum + (f.montantTTC || 0), 0),
-        montantEnAttente: factures.filter(f => f.statut === 'ENVOYEE' || f.statut === 'EN_RETARD').reduce((sum, f) => sum + (f.montantTTC || 0), 0),
+        facturesEnAttente: factures.filter(f => f.statut === 'NON_PAYEE' || f.statut === 'PARTIELLEMENT_PAYEE').length,
+        facturesAnnulees: factures.filter(f => f.statut === 'ANNULEE').length,
+        chiffreAffaires: factures.filter(f => f.statut === 'PAYEE').reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0),
+        chiffreAffairesPeriod: facturesPeriod.filter(f => f.statut === 'PAYEE').reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0),
+        montantEnAttente: factures.filter(f => f.statut === 'NON_PAYEE' || f.statut === 'PARTIELLEMENT_PAYEE').reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0),
 
         // Produits
         totalProduits: produits.length,
@@ -119,9 +126,9 @@ function calculateStats(clients, devis, factures, produits, period) {
         produitsEnRupture: produits.filter(p => p.stock !== null && p.stock === 0).length,
         produitsFaibleStock: produits.filter(p => p.stock !== null && p.stock > 0 && p.stock <= 10).length,
 
-        // Taux de conversion
+        // Taux de conversion (devis transformés en facture)
         tauxConversion: devis.length > 0 
-            ? Math.round((devis.filter(d => d.statut === 'CONVERTI').length / devis.length) * 100) 
+            ? Math.round((devis.filter(d => d.statut === 'TRANSFORME_EN_FACTURE').length / devis.length) * 100) 
             : 0,
 
         // Evolution mensuelle
@@ -178,14 +185,17 @@ function calculateMonthlyEvolution(factures) {
         const year = date.getFullYear();
         
         const facturesMois = factures.filter(f => {
-            const d = new Date(f.dateCreation);
+            // Utiliser dateFacture ou dateCreation selon ce qui est disponible
+            const dateStr = f.dateFacture || f.dateCreation;
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
             return d.getMonth() === month && d.getFullYear() === year;
         });
         
         months.push({
-            label: date.toLocaleDateString('fr-FR', { month: 'short' }),
+            label: date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
             count: facturesMois.length,
-            montant: facturesMois.reduce((sum, f) => sum + (f.montantTTC || 0), 0)
+            montant: facturesMois.reduce((sum, f) => sum + (parseFloat(f.montantTTC) || 0), 0)
         });
     }
     
@@ -199,17 +209,21 @@ function calculateTopClients(clients, factures) {
     const clientStats = {};
     
     factures.forEach(f => {
-        if (f.client) {
-            const clientId = f.client.id;
+        // Utiliser clientId et clientNom du DTO
+        const clientId = f.clientId || (f.client ? f.client.id : null);
+        const clientNom = f.clientNom || (f.client ? f.client.nom : null);
+        
+        if (clientId) {
             if (!clientStats[clientId]) {
                 clientStats[clientId] = {
-                    client: f.client,
+                    id: clientId,
+                    nom: clientNom || 'Client inconnu',
                     count: 0,
                     montant: 0
                 };
             }
             clientStats[clientId].count++;
-            clientStats[clientId].montant += f.montantTTC || 0;
+            clientStats[clientId].montant += parseFloat(f.montantTTC) || 0;
         }
     });
     
@@ -225,19 +239,23 @@ function calculateTopProduits(produits, factures) {
     const produitStats = {};
     
     factures.forEach(f => {
-        if (f.lignes) {
+        if (f.lignes && Array.isArray(f.lignes)) {
             f.lignes.forEach(l => {
-                if (l.produit) {
-                    const produitId = l.produit.id;
+                // Utiliser produitId et produitNom du DTO
+                const produitId = l.produitId || (l.produit ? l.produit.id : null);
+                const produitNom = l.produitNom || (l.produit ? l.produit.nom : null);
+                
+                if (produitId) {
                     if (!produitStats[produitId]) {
                         produitStats[produitId] = {
-                            produit: l.produit,
+                            id: produitId,
+                            nom: produitNom || 'Produit inconnu',
                             quantite: 0,
                             montant: 0
                         };
                     }
-                    produitStats[produitId].quantite += l.quantite || 0;
-                    produitStats[produitId].montant += (l.quantite || 0) * (l.prixUnitaireHT || 0);
+                    produitStats[produitId].quantite += parseInt(l.quantite) || 0;
+                    produitStats[produitId].montant += parseFloat(l.totalLigneHT) || ((parseInt(l.quantite) || 0) * (parseFloat(l.prixUnitaireHT) || 0));
                 }
             });
         }
@@ -254,28 +272,31 @@ function calculateTopProduits(produits, factures) {
 function displayKPIs(apiStats, calculatedStats) {
     // Mettre à jour les éléments par ID
     const statCA = document.getElementById('stat-ca');
-    if (statCA) statCA.textContent = Utils.formatCurrency(calculatedStats.chiffreAffaires);
+    if (statCA) statCA.textContent = formatCurrency(calculatedStats.chiffreAffaires);
     
     const statCATrend = document.getElementById('stat-ca-trend');
-    if (statCATrend) statCATrend.textContent = '+' + calculatedStats.tauxConversion + '% ce mois';
+    if (statCATrend) {
+        const taux = calculatedStats.tauxConversion || 0;
+        statCATrend.textContent = taux + '% taux de conversion';
+    }
     
     const statFacturesPayees = document.getElementById('stat-factures-payees');
-    if (statFacturesPayees) statFacturesPayees.textContent = calculatedStats.facturesPayees;
+    if (statFacturesPayees) statFacturesPayees.textContent = calculatedStats.facturesPayees || 0;
     
     const statFacturesTotal = document.getElementById('stat-factures-total');
-    if (statFacturesTotal) statFacturesTotal.textContent = 'sur ' + calculatedStats.totalFactures + ' factures';
+    if (statFacturesTotal) statFacturesTotal.textContent = 'sur ' + (calculatedStats.totalFactures || 0) + ' factures';
     
     const statDevisAcceptes = document.getElementById('stat-devis-acceptes');
-    if (statDevisAcceptes) statDevisAcceptes.textContent = calculatedStats.devisAccepte;
+    if (statDevisAcceptes) statDevisAcceptes.textContent = calculatedStats.devisAcceptes || 0;
     
     const statDevisTotal = document.getElementById('stat-devis-total');
-    if (statDevisTotal) statDevisTotal.textContent = 'sur ' + calculatedStats.totalDevis + ' devis';
+    if (statDevisTotal) statDevisTotal.textContent = 'sur ' + (calculatedStats.totalDevis || 0) + ' devis';
     
     const statNouveauxClients = document.getElementById('stat-nouveaux-clients');
-    if (statNouveauxClients) statNouveauxClients.textContent = calculatedStats.nouveauxClients;
+    if (statNouveauxClients) statNouveauxClients.textContent = calculatedStats.nouveauxClients || 0;
     
     const statClientsTotal = document.getElementById('stat-clients-total');
-    if (statClientsTotal) statClientsTotal.textContent = calculatedStats.totalClients + ' clients au total';
+    if (statClientsTotal) statClientsTotal.textContent = (calculatedStats.totalClients || 0) + ' clients au total';
 }
 
 /**
@@ -312,7 +333,9 @@ function displayRevenueChart(data) {
                 backgroundColor: 'rgba(17, 82, 212, 0.7)',
                 borderColor: 'rgba(17, 82, 212, 1)',
                 borderWidth: 1,
-                borderRadius: 4
+                borderRadius: 6,
+                barThickness: 40,
+                maxBarThickness: 50
             }]
         },
         options: {
@@ -321,15 +344,42 @@ function displayRevenueChart(data) {
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toLocaleString('fr-MA') + ' DH';
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
                     ticks: {
                         callback: function(value) {
+                            if (value >= 1000) {
+                                return (value / 1000).toFixed(0) + 'K DH';
+                            }
                             return value.toLocaleString('fr-MA') + ' DH';
-                        }
+                        },
+                        font: { size: 11 }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: 12, weight: '500' }
                     }
                 }
             }
@@ -353,19 +403,19 @@ function displayStatusChart(stats) {
     statusChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Devis acceptés', 'Devis en attente', 'Factures payées', 'Factures en attente'],
+            labels: ['Devis acceptés', 'Devis en cours', 'Factures payées', 'Factures non payées'],
             datasets: [{
                 data: [
-                    stats.devisAccepte,
-                    stats.devisEnvoye + stats.devisBrouillon,
-                    stats.facturesPayees,
-                    stats.facturesEnAttente + stats.facturesEnRetard
+                    stats.devisAcceptes || 0,
+                    stats.devisEnCours || 0,
+                    stats.facturesPayees || 0,
+                    stats.facturesEnAttente || 0
                 ],
                 backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(234, 179, 8, 0.8)',
-                    'rgba(17, 82, 212, 0.8)',
-                    'rgba(239, 68, 68, 0.8)'
+                    'rgba(34, 197, 94, 0.85)',
+                    'rgba(234, 179, 8, 0.85)',
+                    'rgba(17, 82, 212, 0.85)',
+                    'rgba(239, 68, 68, 0.85)'
                 ],
                 borderColor: [
                     'rgba(34, 197, 94, 1)',
@@ -373,15 +423,30 @@ function displayStatusChart(stats) {
                     'rgba(17, 82, 212, 1)',
                     'rgba(239, 68, 68, 1)'
                 ],
-                borderWidth: 1
+                borderWidth: 2,
+                hoverOffset: 8
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '60%',
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    cornerRadius: 8
                 }
             }
         }
@@ -415,9 +480,12 @@ function displayTopClients(topClients) {
         <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
             <div class="flex items-center gap-3">
                 <span class="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-bold">${index + 1}</span>
-                <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.client?.nom || 'Inconnu')}</span>
+                <div class="flex flex-col">
+                    <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.nom || 'Client inconnu')}</span>
+                    <span class="text-xs text-gray-500">${item.count} facture${item.count > 1 ? 's' : ''}</span>
+                </div>
             </div>
-            <span class="font-bold text-primary">${Utils.formatCurrency(item.montant)}</span>
+            <span class="font-bold text-primary">${formatCurrency(item.montant)}</span>
         </div>
     `).join('');
 }
@@ -438,12 +506,12 @@ function displayTopProduits(topProduits) {
         <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
             <div class="flex items-center gap-3">
                 <span class="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-bold">${index + 1}</span>
-                <div>
-                    <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.produit?.nom || 'Inconnu')}</span>
-                    <span class="text-sm text-gray-500 ml-2">(${item.quantite} vendus)</span>
+                <div class="flex flex-col">
+                    <span class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.nom || 'Produit inconnu')}</span>
+                    <span class="text-xs text-gray-500">${item.quantite} vendu${item.quantite > 1 ? 's' : ''}</span>
                 </div>
             </div>
-            <span class="font-bold text-primary">${Utils.formatCurrency(item.montant)}</span>
+            <span class="font-bold text-primary">${formatCurrency(item.montant)}</span>
         </div>
     `).join('');
 }
@@ -465,6 +533,54 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Formate un montant en devise (DH)
+ */
+function formatCurrency(amount) {
+    if (amount == null || isNaN(amount)) return '0,00 DH';
+    return parseFloat(amount).toLocaleString('fr-MA', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + ' DH';
+}
+
+/**
+ * Affiche un état vide lorsqu'il n'y a pas de données
+ */
+function displayEmptyState() {
+    // KPIs
+    const statCA = document.getElementById('stat-ca');
+    if (statCA) statCA.textContent = '0 DH';
+    
+    const statCATrend = document.getElementById('stat-ca-trend');
+    if (statCATrend) statCATrend.textContent = 'Aucune donnée';
+    
+    const statFacturesPayees = document.getElementById('stat-factures-payees');
+    if (statFacturesPayees) statFacturesPayees.textContent = '0';
+    
+    const statFacturesTotal = document.getElementById('stat-factures-total');
+    if (statFacturesTotal) statFacturesTotal.textContent = 'sur 0 factures';
+    
+    const statDevisAcceptes = document.getElementById('stat-devis-acceptes');
+    if (statDevisAcceptes) statDevisAcceptes.textContent = '0';
+    
+    const statDevisTotal = document.getElementById('stat-devis-total');
+    if (statDevisTotal) statDevisTotal.textContent = 'sur 0 devis';
+    
+    const statNouveauxClients = document.getElementById('stat-nouveaux-clients');
+    if (statNouveauxClients) statNouveauxClients.textContent = '0';
+    
+    const statClientsTotal = document.getElementById('stat-clients-total');
+    if (statClientsTotal) statClientsTotal.textContent = '0 clients au total';
+
+    // Containers
+    const topClients = document.getElementById('top-clients');
+    if (topClients) topClients.innerHTML = '<p class="text-center py-4 text-gray-500">Aucune donnée disponible</p>';
+    
+    const topProducts = document.getElementById('top-products');
+    if (topProducts) topProducts.innerHTML = '<p class="text-center py-4 text-gray-500">Aucune donnée disponible</p>';
 }
 
 // Export pour utilisation globale

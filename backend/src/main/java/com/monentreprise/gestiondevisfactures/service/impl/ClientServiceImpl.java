@@ -83,8 +83,15 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", id));
         
-        // Hard delete - suppression définitive de la base de données
-        clientRepository.delete(client);
+        try {
+            // Hard delete - suppression définitive de la base de données
+            clientRepository.delete(client);
+        } catch (Exception e) {
+            // Si la suppression échoue (contrainte FK), désactiver le client
+            client.setActif(false);
+            clientRepository.save(client);
+            throw new BusinessException("Le client est utilisé dans des devis/factures. Il a été désactivé au lieu d'être supprimé.");
+        }
     }
 
     @Override

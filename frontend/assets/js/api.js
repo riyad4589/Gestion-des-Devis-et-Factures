@@ -3,7 +3,7 @@
  * Ce fichier gère toutes les communications avec le backend Spring Boot
  */
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 // Configuration des en-têtes par défaut
 const defaultHeaders = {
@@ -176,9 +176,19 @@ const DevisAPI = {
     refuser: (id) => apiRequest(`/devis/${id}/refuser`, 'PUT'),
     
     /**
+     * Annule un devis
+     */
+    annuler: (id) => apiRequest(`/devis/${id}/annuler`, 'PUT'),
+    
+    /**
      * Convertit un devis en facture
      */
-    convertirEnFacture: (id) => apiRequest(`/devis/${id}/convertir-facture`, 'POST'),
+    convertirEnFacture: (id) => apiRequest(`/devis/${id}/convertir-en-facture`, 'POST'),
+    
+    /**
+     * Alias pour convertir (rétrocompatibilité)
+     */
+    convertir: (id) => apiRequest(`/devis/${id}/convertir-en-facture`, 'POST'),
     
     /**
      * Télécharge le PDF d'un devis
@@ -263,6 +273,11 @@ const FacturesAPI = {
 
 const StatistiquesAPI = {
     /**
+     * Récupère les statistiques globales
+     */
+    getAll: () => apiRequest('/statistiques'),
+    
+    /**
      * Récupère les statistiques du dashboard
      */
     getDashboard: () => apiRequest('/statistiques/dashboard'),
@@ -286,6 +301,49 @@ const StatistiquesAPI = {
      * Récupère les statistiques des factures par statut
      */
     getFacturesParStatut: () => apiRequest('/statistiques/factures-par-statut')
+};
+
+// ==================== API ENTREPRISE ====================
+
+const EntrepriseAPI = {
+    /**
+     * Récupère les informations de l'entreprise
+     */
+    get: () => apiRequest('/entreprise'),
+    
+    /**
+     * Sauvegarde les informations de l'entreprise
+     */
+    save: (data) => apiRequest('/entreprise', 'POST', data),
+    
+    /**
+     * Met à jour les informations de l'entreprise
+     */
+    update: (data) => apiRequest('/entreprise', 'PUT', data)
+};
+
+// ==================== API UTILISATEURS ====================
+
+const UsersAPI = {
+    /**
+     * Récupère un utilisateur par ID
+     */
+    getById: (id) => apiRequest(`/auth/users/${id}`),
+    
+    /**
+     * Récupère un utilisateur par email
+     */
+    getByEmail: (email) => apiRequest(`/auth/users/email/${encodeURIComponent(email)}`),
+    
+    /**
+     * Met à jour le profil d'un utilisateur
+     */
+    updateProfile: (id, data) => apiRequest(`/auth/users/${id}`, 'PUT', data),
+    
+    /**
+     * Change le mot de passe d'un utilisateur
+     */
+    changePassword: (id, passwordData) => apiRequest(`/auth/users/${id}/password`, 'PUT', passwordData)
 };
 
 // ==================== FONCTIONS UTILITAIRES ====================
@@ -402,10 +460,9 @@ function showConfirm(message, onConfirm, onCancel) {
 function getDevisStatutBadge(statut) {
     const badges = {
         'EN_COURS': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">En cours</span>',
-        'ENVOYE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Envoyé</span>',
         'VALIDE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Validé</span>',
-        'REFUSE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Refusé</span>',
-        'EXPIRE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Expiré</span>'
+        'TRANSFORME_EN_FACTURE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">Converti</span>',
+        'ANNULE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Annulé</span>'
     };
     return badges[statut] || badges['EN_COURS'];
 }
@@ -415,12 +472,12 @@ function getDevisStatutBadge(statut) {
  */
 function getFactureStatutBadge(statut) {
     const badges = {
-        'EN_ATTENTE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">En attente</span>',
+        'NON_PAYEE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Non payée</span>',
+        'PARTIELLEMENT_PAYEE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Partiellement payée</span>',
         'PAYEE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Payée</span>',
-        'EN_RETARD': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">En retard</span>',
         'ANNULEE': '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Annulée</span>'
     };
-    return badges[statut] || badges['EN_ATTENTE'];
+    return badges[statut] || badges['NON_PAYEE'];
 }
 
 // Export pour utilisation dans les autres fichiers
@@ -429,7 +486,9 @@ window.API = {
     Produits: ProduitsAPI,
     Devis: DevisAPI,
     Factures: FacturesAPI,
-    Statistiques: StatistiquesAPI
+    Statistiques: StatistiquesAPI,
+    Entreprise: EntrepriseAPI,
+    Users: UsersAPI
 };
 
 window.Utils = {

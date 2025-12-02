@@ -109,28 +109,42 @@ function populateClientSelect() {
 async function loadFacture() {
     try {
         const facture = await API.Factures.getById(factureId);
+        console.log('Facture chargée:', facture);
         
-        // Remplir les champs
+        // Remplir les champs - utiliser clientId du DTO ou client.id en fallback
         const clientSelect = document.querySelector('[name="clientId"], #clientId, select');
-        if (clientSelect) clientSelect.value = facture.client?.id || '';
+        if (clientSelect) {
+            const clientIdValue = facture.clientId || facture.client?.id || '';
+            clientSelect.value = clientIdValue;
+        }
 
+        // Utiliser dateFacture du DTO ou dateCreation en fallback
         const dateCreation = document.querySelector('[name="dateCreation"], #dateCreation');
-        if (dateCreation) dateCreation.value = facture.dateCreation?.split('T')[0] || '';
+        if (dateCreation) {
+            const dateValue = facture.dateFacture || facture.dateCreation || '';
+            dateCreation.value = dateValue ? dateValue.split('T')[0] : '';
+        }
 
         const dateEcheance = document.querySelector('[name="dateEcheance"], #dateEcheance');
-        if (dateEcheance) dateEcheance.value = facture.dateEcheance?.split('T')[0] || '';
+        if (dateEcheance && facture.dateEcheance) {
+            dateEcheance.value = facture.dateEcheance.split('T')[0];
+        }
 
         const notes = document.querySelector('[name="notes"], #notes, textarea');
         if (notes) notes.value = facture.notes || '';
 
-        // Charger les lignes
+        // Mode paiement
+        const modePaiement = document.querySelector('[name="modePaiement"], #modePaiement');
+        if (modePaiement) modePaiement.value = facture.modePaiement || '';
+
+        // Charger les lignes - utiliser produitId du DTO ou produit.id en fallback
         if (facture.lignes && facture.lignes.length > 0) {
             lignesFacture = facture.lignes.map(ligne => ({
-                produitId: ligne.produit?.id,
-                designation: ligne.designation,
-                quantite: ligne.quantite,
-                prixUnitaireHT: ligne.prixUnitaireHT,
-                tauxTVA: ligne.tauxTVA || 20
+                produitId: ligne.produitId || ligne.produit?.id,
+                designation: ligne.produitNom || ligne.designation || ligne.produit?.nom || '',
+                quantite: parseInt(ligne.quantite) || 1,
+                prixUnitaireHT: parseFloat(ligne.prixUnitaireHT) || 0,
+                tauxTVA: parseFloat(ligne.tva) || parseFloat(ligne.tauxTVA) || 20
             }));
             renderLignes();
         } else {

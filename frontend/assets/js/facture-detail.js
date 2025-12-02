@@ -115,8 +115,18 @@ function displayFacture(facture) {
         infoStatut.className = `inline-flex rounded-full px-2 py-1 text-xs font-semibold ${config.class}`;
     }
 
-    // Informations client
-    displayClientInfo(facture.client);
+    // Devis d'origine
+    const devisOrigine = document.getElementById('devis-origine');
+    if (devisOrigine) {
+        if (facture.devisOrigineId && facture.devisOrigineNumero) {
+            devisOrigine.innerHTML = `<a href="écran_détail_d'un_devis.html?id=${facture.devisOrigineId}" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">${facture.devisOrigineNumero}</a>`;
+        } else {
+            devisOrigine.textContent = 'Aucun devis associé';
+        }
+    }
+
+    // Informations client - passer la facture entière car les infos client sont à la racine
+    displayClientInfo(facture);
 
     // Lignes de la facture
     displayLignes(facture.lignes || []);
@@ -128,31 +138,31 @@ function displayFacture(facture) {
 /**
  * Affiche les informations du client
  */
-function displayClientInfo(client) {
-    if (!client) return;
+function displayClientInfo(facture) {
+    if (!facture) return;
 
-    // Nom
+    // Nom - utiliser clientNom du DTO
     const clientName = document.getElementById('client-name');
     if (clientName) {
-        clientName.textContent = client.nom || '--';
+        clientName.textContent = facture.clientNom || '--';
     }
 
-    // Email
+    // Email - utiliser clientEmail du DTO
     const clientEmail = document.getElementById('client-email');
     if (clientEmail) {
-        clientEmail.textContent = client.email || '--';
+        clientEmail.textContent = facture.clientEmail || '--';
     }
 
-    // Téléphone
+    // Téléphone - utiliser clientTelephone du DTO si disponible
     const clientPhone = document.getElementById('client-phone');
     if (clientPhone) {
-        clientPhone.textContent = client.telephone || 'Non renseigné';
+        clientPhone.textContent = facture.clientTelephone || 'Non renseigné';
     }
 
-    // Adresse
+    // Adresse - utiliser clientAdresse du DTO si disponible
     const clientAddress = document.getElementById('client-address');
     if (clientAddress) {
-        clientAddress.textContent = client.adresse || 'Non renseignée';
+        clientAddress.textContent = facture.clientAdresse || 'Non renseignée';
     }
 }
 
@@ -209,7 +219,7 @@ function displayLignes(lignes) {
     }
 
     tbody.innerHTML = lignes.map((ligne) => {
-        const produitNom = ligne.produit ? ligne.produit.nom : 'Produit inconnu';
+        const produitNom = ligne.produitNom || 'Produit inconnu';
         const totalLigne = (ligne.quantite || 0) * (ligne.prixUnitaireHT || 0);
         const tva = ligne.tva || 20;
         

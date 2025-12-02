@@ -28,6 +28,8 @@ public class DevisDTO {
     
     private String clientNom;
     private String clientEmail;
+    private String clientTelephone;
+    private String clientAdresse;
 
     private LocalDateTime dateDevis;
     private BigDecimal totalHT;

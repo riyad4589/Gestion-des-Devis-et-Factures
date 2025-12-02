@@ -72,8 +72,9 @@ public class ProduitServiceImpl implements ProduitService {
         Produit produit = produitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produit", "id", id));
         
-        // Hard delete - suppression définitive de la base de données
+        // Suppression définitive de la base de données
         produitRepository.delete(produit);
+        produitRepository.flush();
     }
 
     @Override

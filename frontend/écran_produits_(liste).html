@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Écran Produits (Liste)</title>
+    <title>GestFacture - Produits</title>
+    <link rel="icon" type="image/png" href="assets/icon/icon.png"/>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
@@ -56,10 +57,19 @@
                     <input id="search-input" type="text" placeholder="Rechercher un produit..." class="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 dark:text-white placeholder:text-gray-400 ml-2"/>
                 </div>
             </div>
-            <select id="category-filter" class="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 h-10 px-3 text-gray-700 dark:text-gray-300 text-sm">
+            <select
+                id="category-filter"
+                class="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                    h-10 px-3 pr-8 min-w-[180px] text-gray-700 dark:text-gray-300 text-sm"
+            >
                 <option value="">Toutes catégories</option>
             </select>
-            <select id="stock-filter" class="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 h-10 px-3 text-gray-700 dark:text-gray-300 text-sm">
+
+            <select
+                id="stock-filter"
+                class="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                    h-10 px-3 pr-8 min-w-[160px] text-gray-700 dark:text-gray-300 text-sm"
+            >
                 <option value="">Tous les stocks</option>
                 <option value="low">Stock faible</option>
                 <option value="out">Rupture</option>
@@ -88,6 +98,7 @@
         </div>
     </main>
 
+    <script src="assets/js/app-loader.js"></script>
     <script src="assets/js/sidebar.js"></script>
     <script src="assets/js/api.js"></script>
     <script src="assets/js/navigation.js"></script>

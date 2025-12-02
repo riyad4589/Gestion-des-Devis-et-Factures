@@ -3,7 +3,7 @@
  * Gère la connexion et la déconnexion avec le backend
  */
 
-const AUTH_API_URL = '/api/auth';
+const AUTH_API_URL = 'http://localhost:8080/api/auth';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Vérifier si déjà connecté
@@ -121,7 +121,7 @@ async function performLogin(email, password, rememberMe, submitBtn) {
 
     try {
         // Appel API réel au backend
-        const response = await fetch(AUTH_API_URL, {
+        const response = await fetch(AUTH_API_URL + '/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -129,7 +129,9 @@ async function performLogin(email, password, rememberMe, submitBtn) {
             body: JSON.stringify({ email, password })
         });
 
-        const data = await response.json();
+        // Vérifier si la réponse a un contenu avant de parser
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : {};
 
         if (response.ok && data.success) {
             // Sauvegarder l'état de connexion
@@ -138,6 +140,9 @@ async function performLogin(email, password, rememberMe, submitBtn) {
             localStorage.setItem('userName', data.user.prenom || data.user.nom || email.split('@')[0]);
             localStorage.setItem('userRole', data.user.role);
             localStorage.setItem('userId', data.user.id);
+            
+            // Sauvegarder les données utilisateur complètes (pour la page paramètres)
+            localStorage.setItem('userData', JSON.stringify(data.user));
 
             // Se souvenir de l'email si demandé
             if (rememberMe) {

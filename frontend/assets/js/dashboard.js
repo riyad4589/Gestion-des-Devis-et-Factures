@@ -48,11 +48,11 @@ async function loadDashboardData() {
  * Met à jour les cartes de statistiques
  */
 function updateStats(clients, produits, devis, factures) {
-    // Calculer les statistiques
-    const nbClients = clients.length;
-    const nbProduits = produits.filter(p => p.actif).length;
-    const nbDevisEnCours = devis.filter(d => d.statut === 'EN_ATTENTE' || d.statut === 'ENVOYE' || d.statut === 'BROUILLON').length;
-    const facturesNonPayees = factures.filter(f => f.statut === 'ENVOYEE' || f.statut === 'EN_RETARD' || f.statut === 'EN_ATTENTE');
+    // Calculer les statistiques (filtrer les éléments actifs)
+    const nbClients = clients.filter(c => c.actif !== false).length;
+    const nbProduits = produits.filter(p => p.actif !== false).length;
+    const nbDevisEnCours = devis.filter(d => d.statut === 'EN_COURS').length;
+    const facturesNonPayees = factures.filter(f => f.statut === 'NON_PAYEE' || f.statut === 'PARTIELLEMENT_PAYEE');
     const nbFacturesNonPayees = facturesNonPayees.length;
     
     // Calculer le chiffre d'affaires du mois
@@ -62,7 +62,7 @@ function updateStats(clients, produits, devis, factures) {
     
     const caMonth = factures
         .filter(f => {
-            const dateFacture = new Date(f.dateCreation || f.dateEmission);
+            const dateFacture = new Date(f.dateFacture);
             return dateFacture.getMonth() === currentMonth && 
                    dateFacture.getFullYear() === currentYear &&
                    f.statut === 'PAYEE';
@@ -158,7 +158,7 @@ function showTabContent(tabType) {
  */
 function renderDevisTable(tbody) {
     const recentDevis = [...dashboardData.devis]
-        .sort((a, b) => new Date(b.dateCreation) - new Date(a.dateCreation))
+        .sort((a, b) => new Date(b.dateDevis || b.dateCreation) - new Date(a.dateDevis || a.dateCreation))
         .slice(0, 5);
     
     if (recentDevis.length === 0) {
@@ -168,9 +168,9 @@ function renderDevisTable(tbody) {
     
     tbody.innerHTML = recentDevis.map(d => `
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">DEV-${String(d.id).padStart(4, '0')}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${d.client?.nom || 'Client inconnu'}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatCurrency(d.montantTTC)}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${d.numeroDevis || 'DEV-' + String(d.id).padStart(4, '0')}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${d.clientNom || 'Client inconnu'}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatCurrency(d.totalTTC)}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm">${Utils.getDevisStatutBadge(d.statut)}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm">
                 <a href="écran_détail_d'un_devis.html?id=${d.id}" class="text-primary hover:text-primary/80 font-medium">Voir</a>
@@ -184,7 +184,7 @@ function renderDevisTable(tbody) {
  */
 function renderFacturesTable(tbody) {
     const recentFactures = [...dashboardData.factures]
-        .sort((a, b) => new Date(b.dateCreation || b.dateEmission) - new Date(a.dateCreation || a.dateEmission))
+        .sort((a, b) => new Date(b.dateFacture || b.dateCreation) - new Date(a.dateFacture || a.dateCreation))
         .slice(0, 5);
     
     if (recentFactures.length === 0) {
@@ -194,8 +194,8 @@ function renderFacturesTable(tbody) {
     
     tbody.innerHTML = recentFactures.map(f => `
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">FAC-${String(f.id).padStart(4, '0')}</td>
-            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${f.client?.nom || 'Client inconnu'}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">${f.numeroFacture || 'FAC-' + String(f.id).padStart(4, '0')}</td>
+            <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${f.clientNom || 'Client inconnu'}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${Utils.formatCurrency(f.montantTTC)}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm">${Utils.getFactureStatutBadge(f.statut)}</td>
             <td class="whitespace-nowrap px-6 py-4 text-sm">

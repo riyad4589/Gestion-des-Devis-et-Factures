@@ -106,7 +106,7 @@ function displayDevis(devis) {
     }
 
     // Informations client
-    displayClientInfo(devis.client);
+    displayClientInfo(devis);
 
     // Lignes du devis
     displayLignes(devis.lignes || []);
@@ -124,31 +124,31 @@ function displayDevis(devis) {
 /**
  * Affiche les informations du client
  */
-function displayClientInfo(client) {
-    if (!client) return;
+function displayClientInfo(devis) {
+    if (!devis) return;
 
     // Nom
     const clientName = document.getElementById('client-name');
     if (clientName) {
-        clientName.textContent = client.nom || '--';
+        clientName.textContent = devis.clientNom || '--';
     }
 
     // Email
     const clientEmail = document.getElementById('client-email');
     if (clientEmail) {
-        clientEmail.textContent = client.email || '--';
+        clientEmail.textContent = devis.clientEmail || '--';
     }
 
     // Téléphone
     const clientPhone = document.getElementById('client-phone');
     if (clientPhone) {
-        clientPhone.textContent = client.telephone || 'Non renseigné';
+        clientPhone.textContent = devis.clientTelephone || 'Non renseigné';
     }
 
     // Adresse
     const clientAddress = document.getElementById('client-address');
     if (clientAddress) {
-        clientAddress.textContent = client.adresse || 'Non renseignée';
+        clientAddress.textContent = devis.clientAdresse || 'Non renseignée';
     }
 }
 
@@ -198,7 +198,7 @@ function displayLignes(lignes) {
     }
 
     tbody.innerHTML = lignes.map((ligne) => {
-        const produitNom = ligne.produit ? ligne.produit.nom : 'Produit inconnu';
+        const produitNom = ligne.produitNom || 'Produit inconnu';
         const totalLigne = (ligne.quantite || 0) * (ligne.prixUnitaireHT || 0);
         const tva = ligne.tva || 20;
         
