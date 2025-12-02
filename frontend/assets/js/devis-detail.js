@@ -266,10 +266,342 @@ function editDevis() {
 }
 
 /**
- * Imprimer/PDF du devis
+ * Nettoie le texte pour le PDF - remplace les caracteres speciaux non supportes
  */
-function printDevis() {
-    window.print();
+function cleanText(text) {
+    if (!text) return '';
+    return String(text)
+        // Exposants - notamment le "e" en exposant (ᵉ comme dans 3ᵉ)
+        .replace(/\u1D49/g, 'e')  // ᵉ -> e
+        .replace(/\u00B2/g, '2') // ² -> 2
+        .replace(/\u00B3/g, '3') // ³ -> 3
+        .replace(/\u00B9/g, '1') // ¹ -> 1
+        .replace(/\u1D52/g, 'o') // ᵒ -> o
+        .replace(/\u02B3/g, 'r') // ʳ -> r
+        .replace(/\u02E2/g, 's') // ˢ -> s
+        // Caracteres francais avec accents -> ASCII
+        .replace(/[àâä]/g, 'a')
+        .replace(/[éèêë]/g, 'e')
+        .replace(/[îï]/g, 'i')
+        .replace(/[ôö]/g, 'o')
+        .replace(/[ùûü]/g, 'u')
+        .replace(/[ç]/g, 'c')
+        .replace(/[ÀÂÄÃ]/g, 'A')
+        .replace(/[ÉÈÊË]/g, 'E')
+        .replace(/[ÎÏ]/g, 'I')
+        .replace(/[ÔÖ]/g, 'O')
+        .replace(/[ÙÛÜ]/g, 'U')
+        .replace(/[Ç]/g, 'C')
+        // Guillemets et apostrophes
+        .replace(/[«»""„]/g, '"')
+        .replace(/[''‚]/g, "'")
+        // Tirets et espaces speciaux
+        .replace(/[–—]/g, '-')
+        .replace(/[\u00A0\u202F]/g, ' '); // Espaces insecables
+}
+
+/**
+ * Genere et telecharge un PDF professionnel du devis
+ */
+async function printDevis() {
+    if (!devisData) {
+        Utils.showToast('Donnees du devis non disponibles', 'error');
+        return;
+    }
+
+    try {
+        let entreprise = null;
+        try {
+            entreprise = await API.Entreprise.get();
+        } catch (e) {
+            console.warn('Impossible de charger les infos entreprise:', e);
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = 210;
+        const pageHeight = 297;
+        const marginLeft = 15;
+        const marginRight = 15;
+        const contentWidth = pageWidth - marginLeft - marginRight;
+        let y = 15;
+
+        // Couleurs
+        const blue = [17, 82, 212];
+        const dark = [33, 33, 33];
+        const gray = [120, 120, 120];
+        const lightGray = [245, 245, 245];
+
+        // === EN-TETE ===
+        // Logo: priorite API, puis localStorage
+        const logoData = entreprise?.logo || localStorage.getItem('entrepriseLogo');
+        if (logoData && logoData.startsWith('data:image')) {
+            try {
+                doc.addImage(logoData, 'PNG', marginLeft, y, 30, 15);
+            } catch (e) {}
+        }
+
+        // Nom entreprise: priorite API, puis localStorage
+        const nomEntreprise = entreprise?.nom || localStorage.getItem('entrepriseNom') || 'Mon Entreprise';
+        const maxInfoWidth = 72; // Largeur max pour les infos entreprise
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(...blue);
+        
+        // Nom entreprise avec retour a la ligne si necessaire
+        const nomLines = doc.splitTextToSize(nomEntreprise, maxInfoWidth);
+        nomLines.forEach((line, idx) => {
+            doc.text(line, pageWidth - marginRight, y + 5 + (idx * 5), { align: 'right' });
+        });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...gray);
+        let infoY = y + 5 + (nomLines.length * 5) + 2;
+        
+        if (entreprise?.adresse) {
+            const addrLines = doc.splitTextToSize(cleanText(entreprise.adresse), maxInfoWidth);
+            addrLines.forEach((line) => {
+                doc.text(line, pageWidth - marginRight, infoY, { align: 'right' });
+                infoY += 4;
+            });
+        }
+        if (entreprise?.telephone) {
+            doc.text('Tel: ' + entreprise.telephone, pageWidth - marginRight, infoY, { align: 'right' });
+            infoY += 4;
+        }
+        if (entreprise?.email) {
+            const emailLines = doc.splitTextToSize(entreprise.email, maxInfoWidth);
+            emailLines.forEach((line) => {
+                doc.text(line, pageWidth - marginRight, infoY, { align: 'right' });
+                infoY += 4;
+            });
+        }
+
+        y = Math.max(y + 25, infoY + 5);
+
+        // === BANDEAU DEVIS ===
+        const numeroDevis = devisData.numeroDevis || 'DEV-' + String(devisData.id).padStart(4, '0');
+        doc.setFillColor(...blue);
+        doc.rect(marginLeft, y, contentWidth, 12, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(255, 255, 255);
+        doc.text('DEVIS', marginLeft + 5, y + 8);
+        doc.setFontSize(11);
+        doc.text(numeroDevis, pageWidth - marginRight - 5, y + 8, { align: 'right' });
+
+        y += 18;
+
+        // === INFORMATIONS CLIENT ET DEVIS ===
+        const boxHeight = 32;
+        const boxWidth = (contentWidth - 6) / 2;
+
+        // Box Client
+        doc.setFillColor(...lightGray);
+        doc.rect(marginLeft, y, boxWidth, boxHeight, 'F');
+        doc.setDrawColor(220, 220, 220);
+        doc.rect(marginLeft, y, boxWidth, boxHeight, 'S');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...blue);
+        doc.text('CLIENT', marginLeft + 4, y + 6);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...dark);
+        doc.text(devisData.clientNom || 'Client', marginLeft + 4, y + 12);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...gray);
+        let cy = y + 17;
+        if (devisData.clientAdresse) {
+            const addr = doc.splitTextToSize(cleanText(devisData.clientAdresse), boxWidth - 8);
+            doc.text(addr[0] || '', marginLeft + 4, cy);
+            cy += 4;
+        }
+        if (devisData.clientTelephone) {
+            doc.text(devisData.clientTelephone, marginLeft + 4, cy);
+            cy += 4;
+        }
+        if (devisData.clientEmail) {
+            doc.text(devisData.clientEmail, marginLeft + 4, cy);
+        }
+
+        // Box Devis
+        const rightBox = marginLeft + boxWidth + 6;
+        doc.setFillColor(...lightGray);
+        doc.rect(rightBox, y, boxWidth, boxHeight, 'F');
+        doc.setDrawColor(220, 220, 220);
+        doc.rect(rightBox, y, boxWidth, boxHeight, 'S');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...blue);
+        doc.text('DETAILS', rightBox + 4, y + 6);
+
+        doc.setFontSize(8);
+        const details = [
+            ['Date:', Utils.formatDate(devisData.dateDevis)],
+            ['Validite:', devisData.dateValidite ? Utils.formatDate(devisData.dateValidite) : '30 jours'],
+            ['Statut:', getStatusText(devisData.statut)]
+        ];
+        let dy = y + 13;
+        details.forEach(([label, value]) => {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...gray);
+            doc.text(label, rightBox + 4, dy);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...dark);
+            doc.text(value, rightBox + 28, dy);
+            dy += 5;
+        });
+
+        y += boxHeight + 6;
+
+        // === TABLEAU PRODUITS ===
+        const lignes = devisData.lignes || [];
+        const tableBody = lignes.map(l => {
+            const total = (l.quantite || 0) * (l.prixUnitaireHT || 0);
+            return [
+                l.produitNom || 'Produit',
+                String(l.quantite || 0),
+                formatMoney(l.prixUnitaireHT || 0),
+                (l.tva || 20) + '%',
+                formatMoney(total)
+            ];
+        });
+
+        doc.autoTable({
+            startY: y,
+            head: [['Designation', 'Qte', 'Prix HT', 'TVA', 'Total HT']],
+            body: tableBody,
+            theme: 'grid',
+            styles: {
+                font: 'helvetica',
+                fontSize: 9,
+                cellPadding: 3,
+                textColor: dark,
+                lineColor: [220, 220, 220],
+                lineWidth: 0.1
+            },
+            headStyles: {
+                fillColor: blue,
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9
+            },
+            columnStyles: {
+                0: { cellWidth: 'auto', halign: 'left' },
+                1: { cellWidth: 18, halign: 'center' },
+                2: { cellWidth: 30, halign: 'right' },
+                3: { cellWidth: 18, halign: 'center' },
+                4: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
+            },
+            margin: { left: marginLeft, right: marginRight },
+            tableWidth: contentWidth,
+            alternateRowStyles: { fillColor: [252, 252, 252] }
+        });
+
+        y = doc.lastAutoTable.finalY + 6;
+
+        // === TOTAUX ===
+        const totWidth = 70;
+        const totX = pageWidth - marginRight - totWidth;
+
+        doc.setFillColor(...lightGray);
+        doc.rect(totX, y, totWidth, 36, 'F');
+        doc.setDrawColor(220, 220, 220);
+        doc.rect(totX, y, totWidth, 36, 'S');
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...gray);
+        doc.text('Sous-total HT', totX + 4, y + 8);
+        doc.setTextColor(...dark);
+        doc.text(formatMoney(devisData.totalHT || 0), totX + totWidth - 4, y + 8, { align: 'right' });
+
+        doc.setTextColor(...gray);
+        doc.text('TVA', totX + 4, y + 16);
+        doc.setTextColor(...dark);
+        doc.text(formatMoney(devisData.totalTVA || 0), totX + totWidth - 4, y + 16, { align: 'right' });
+
+        doc.setDrawColor(...blue);
+        doc.setLineWidth(0.5);
+        doc.line(totX + 4, y + 21, totX + totWidth - 4, y + 21);
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...blue);
+        doc.text('TOTAL TTC', totX + 4, y + 30);
+        doc.text(formatMoney(devisData.totalTTC || 0), totX + totWidth - 4, y + 30, { align: 'right' });
+
+        y += 42;
+
+        // === COMMENTAIRE ===
+        if (devisData.commentaire && y < 260) {
+            doc.setFillColor(...lightGray);
+            doc.rect(marginLeft, y, contentWidth, 16, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(...blue);
+            doc.text('Note:', marginLeft + 4, y + 6);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...dark);
+            const note = doc.splitTextToSize(devisData.commentaire, contentWidth - 20);
+            doc.text(note[0] || '', marginLeft + 16, y + 6);
+            y += 20;
+        }
+
+        // === CONDITIONS ===
+        if (y < 270) {
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...gray);
+            doc.text('Conditions: Ce devis est valable 30 jours. Paiement selon conditions convenues.', marginLeft, y);
+        }
+
+        // === PIED DE PAGE ===
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.3);
+        doc.line(marginLeft, 285, pageWidth - marginRight, 285);
+        doc.setFontSize(7);
+        doc.setTextColor(...gray);
+        doc.text(nomEntreprise, marginLeft, 290);
+        doc.text('Page 1/1', pageWidth / 2, 290, { align: 'center' });
+        doc.text('Genere le ' + new Date().toLocaleDateString('fr-FR'), pageWidth - marginRight, 290, { align: 'right' });
+
+        doc.save('Devis_' + numeroDevis + '.pdf');
+        Utils.showToast('PDF telecharge avec succes', 'success');
+
+    } catch (error) {
+        console.error('Erreur PDF:', error);
+        Utils.showToast('Erreur lors de la generation du PDF', 'error');
+    }
+}
+
+/**
+ * Formate un montant en dirhams
+ */
+function formatMoney(amount) {
+    return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' DH';
+}
+
+
+/**
+ * Retourne le texte du statut
+ */
+function getStatusText(statut) {
+    const statusText = {
+        'EN_COURS': 'En cours',
+        'VALIDE': 'Valide',
+        'TRANSFORME_EN_FACTURE': 'Converti',
+        'ANNULE': 'Annule'
+    };
+    return statusText[statut] || statut;
 }
 
 /**

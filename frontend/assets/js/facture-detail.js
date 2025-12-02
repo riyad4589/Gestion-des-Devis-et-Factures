@@ -281,10 +281,376 @@ function editFacture() {
 }
 
 /**
- * Imprimer/PDF de la facture
+ * Formate un montant pour le PDF - utilise regex pour eviter les espaces unicode
  */
-function printFacture() {
-    window.print();
+function formatMoney(amount) {
+    return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' DH';
+}
+
+/**
+ * Nettoie le texte pour le PDF - remplace les caracteres speciaux non supportes
+ */
+function cleanText(text) {
+    if (!text) return '';
+    return String(text)
+        // Exposants - notamment le "e" en exposant (ᵉ comme dans 3ᵉ)
+        .replace(/\u1D49/g, 'e')  // ᵉ -> e
+        .replace(/\u00B2/g, '2') // ² -> 2
+        .replace(/\u00B3/g, '3') // ³ -> 3
+        .replace(/\u00B9/g, '1') // ¹ -> 1
+        .replace(/\u1D52/g, 'o') // ᵒ -> o
+        .replace(/\u02B3/g, 'r') // ʳ -> r
+        .replace(/\u02E2/g, 's') // ˢ -> s
+        // Caracteres francais avec accents -> ASCII
+        .replace(/[àâä]/g, 'a')
+        .replace(/[éèêë]/g, 'e')
+        .replace(/[îï]/g, 'i')
+        .replace(/[ôö]/g, 'o')
+        .replace(/[ùûü]/g, 'u')
+        .replace(/[ç]/g, 'c')
+        .replace(/[ÀÂÄÃ]/g, 'A')
+        .replace(/[ÉÈÊË]/g, 'E')
+        .replace(/[ÎÏ]/g, 'I')
+        .replace(/[ÔÖ]/g, 'O')
+        .replace(/[ÙÛÜ]/g, 'U')
+        .replace(/[Ç]/g, 'C')
+        // Guillemets et apostrophes
+        .replace(/[«»""„]/g, '"')
+        .replace(/[''‚]/g, "'")
+        // Tirets et espaces speciaux
+        .replace(/[–—]/g, '-')
+        .replace(/[\u00A0\u202F]/g, ' '); // Espaces insecables
+}
+
+/**
+ * Genere et telecharge un PDF professionnel de la facture
+ */
+async function printFacture() {
+    if (!factureData) {
+        Utils.showToast('Donnees de la facture non disponibles', 'error');
+        return;
+    }
+
+    try {
+        // Recuperer les informations de l'entreprise
+        let entreprise = null;
+        try {
+            entreprise = await API.Entreprise.get();
+        } catch (e) {
+            console.warn('Impossible de charger les infos entreprise:', e);
+        }
+
+        const { jsPDF } = window.jspdf;
+        
+        // Dimensions A4 fixes
+        const pageWidth = 210;
+        const pageHeight = 297;
+        const marginLeft = 15;
+        const marginRight = 15;
+        const contentWidth = pageWidth - marginLeft - marginRight;
+        
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        let y = 15;
+
+        // Couleurs
+        const primaryColor = [17, 82, 212];
+        const successColor = [34, 197, 94];
+        const warningColor = [234, 179, 8];
+        const dangerColor = [239, 68, 68];
+        const darkText = [31, 41, 55];
+        const grayText = [107, 114, 128];
+
+        // === EN-TETE ===
+        // Nom entreprise: priorite API, puis localStorage
+        const nomEntreprise = entreprise?.nom || localStorage.getItem('entrepriseNom') || 'Mon Entreprise';
+        
+        // Logo: priorite API, puis localStorage
+        const logoData = entreprise?.logo || localStorage.getItem('entrepriseLogo');
+        if (logoData && logoData.startsWith('data:image')) {
+            try {
+                doc.addImage(logoData, 'PNG', marginLeft, y, 30, 15);
+            } catch (e) {
+                console.warn('Erreur logo:', e);
+            }
+        }
+
+        // Nom entreprise a droite
+        const maxInfoWidth = 80; // Largeur max pour les infos entreprise
+        
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...primaryColor);
+        
+        // Nom entreprise avec retour a la ligne si necessaire
+        const nomLines = doc.splitTextToSize(nomEntreprise, maxInfoWidth);
+        nomLines.forEach((line, idx) => {
+            doc.text(line, pageWidth - marginRight, y + 5 + (idx * 6), { align: 'right' });
+        });
+
+        // Coordonnees entreprise
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...grayText);
+        let rightY = y + 5 + (nomLines.length * 6) + 2;
+        
+        if (entreprise?.adresse) {
+            const addrLines = doc.splitTextToSize(cleanText(entreprise.adresse), maxInfoWidth);
+            addrLines.forEach((line) => {
+                doc.text(line, pageWidth - marginRight, rightY, { align: 'right' });
+                rightY += 4;
+            });
+        }
+        if (entreprise?.telephone) {
+            doc.text('Tel: ' + entreprise.telephone, pageWidth - marginRight, rightY, { align: 'right' });
+            rightY += 4;
+        }
+        if (entreprise?.email) {
+            const emailLines = doc.splitTextToSize(entreprise.email, maxInfoWidth);
+            emailLines.forEach((line) => {
+                doc.text(line, pageWidth - marginRight, rightY, { align: 'right' });
+                rightY += 4;
+            });
+        }
+
+        y = Math.max(y + 25, rightY + 5);
+
+        // === BANNIERE FACTURE ===
+        const numeroFacture = factureData.numeroFacture || 'FAC-' + String(factureData.id).padStart(4, '0');
+        
+        // Couleur selon statut
+        let bannerColor = primaryColor;
+        if (factureData.statut === 'PAYEE') bannerColor = successColor;
+        else if (factureData.statut === 'NON_PAYEE') bannerColor = warningColor;
+        else if (factureData.statut === 'ANNULEE') bannerColor = dangerColor;
+        
+        doc.setFillColor(...bannerColor);
+        doc.rect(marginLeft, y, contentWidth, 14, 'F');
+        
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text('FACTURE', marginLeft + 8, y + 10);
+        
+        doc.setFontSize(14);
+        doc.text(numeroFacture, pageWidth - marginRight - 8, y + 10, { align: 'right' });
+
+        y += 22;
+
+        // === INFOS CLIENT ET FACTURE ===
+        const colWidth = (contentWidth - 10) / 2;
+
+        // Client (gauche)
+        doc.setFillColor(245, 247, 250);
+        doc.rect(marginLeft, y, colWidth, 35, 'F');
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...primaryColor);
+        doc.text('FACTURER A', marginLeft + 5, y + 8);
+
+        doc.setFontSize(12);
+        doc.setTextColor(...darkText);
+        doc.text(factureData.clientNom || 'Client', marginLeft + 5, y + 16);
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...grayText);
+        let clientY = y + 22;
+        if (factureData.clientAdresse) {
+            doc.text(cleanText(factureData.clientAdresse).substring(0, 40), marginLeft + 5, clientY);
+            clientY += 5;
+        }
+        if (factureData.clientTelephone) {
+            doc.text(factureData.clientTelephone, marginLeft + 5, clientY);
+        }
+
+        // Details facture (droite)
+        const rightX = marginLeft + colWidth + 10;
+        doc.setFillColor(245, 247, 250);
+        doc.rect(rightX, y, colWidth, 35, 'F');
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...primaryColor);
+        doc.text('DETAILS FACTURE', rightX + 5, y + 8);
+
+        const modePaiementLabels = {
+            'ESPECES': 'Especes',
+            'CHEQUE': 'Cheque',
+            'VIREMENT': 'Virement',
+            'CB': 'Carte bancaire',
+            'PRELEVEMENT': 'Prelevement'
+        };
+
+        const statusLabels = {
+            'NON_PAYEE': 'Non payee',
+            'PARTIELLEMENT_PAYEE': 'Partielle',
+            'PAYEE': 'Payee',
+            'ANNULEE': 'Annulee'
+        };
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...grayText);
+        doc.text('Date:', rightX + 5, y + 16);
+        doc.text('Paiement:', rightX + 5, y + 23);
+        doc.text('Statut:', rightX + 5, y + 30);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...darkText);
+        doc.text(Utils.formatDate(factureData.dateFacture) || '--', rightX + 35, y + 16);
+        doc.text(modePaiementLabels[factureData.modePaiement] || factureData.modePaiement || '--', rightX + 35, y + 23);
+        doc.text(statusLabels[factureData.statut] || factureData.statut || '--', rightX + 35, y + 30);
+
+        y += 42;
+
+        // === TABLEAU DES PRODUITS ===
+        const lignes = factureData.lignes || [];
+        const tableData = lignes.map((ligne) => {
+            const totalLigne = (ligne.quantite || 0) * (ligne.prixUnitaireHT || 0);
+            return [
+                ligne.produitNom || 'Produit',
+                (ligne.quantite || 0).toString(),
+                formatMoney(ligne.prixUnitaireHT || 0),
+                (ligne.tva || 20) + '%',
+                formatMoney(totalLigne)
+            ];
+        });
+
+        doc.autoTable({
+            startY: y,
+            head: [['Designation', 'Qte', 'Prix unit. HT', 'TVA', 'Total HT']],
+            body: tableData,
+            theme: 'grid',
+            styles: {
+                fontSize: 10,
+                cellPadding: 4,
+                textColor: darkText,
+                lineColor: [200, 200, 200],
+                lineWidth: 0.1
+            },
+            headStyles: {
+                fillColor: primaryColor,
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 10
+            },
+            columnStyles: {
+                0: { cellWidth: 70, halign: 'left' },
+                1: { cellWidth: 20, halign: 'center' },
+                2: { cellWidth: 35, halign: 'right' },
+                3: { cellWidth: 20, halign: 'center' },
+                4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+            },
+            margin: { left: marginLeft, right: marginRight },
+            tableWidth: contentWidth
+        });
+
+        y = doc.lastAutoTable.finalY + 10;
+
+        // === TOTAUX ===
+        const totalsX = marginLeft + contentWidth - 80;
+        
+        doc.setFillColor(245, 247, 250);
+        doc.rect(totalsX, y, 80, 40, 'F');
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...grayText);
+        doc.text('Sous-total HT:', totalsX + 5, y + 10);
+        doc.text('TVA:', totalsX + 5, y + 20);
+
+        doc.setTextColor(...darkText);
+        doc.text(formatMoney(factureData.montantHT || 0), totalsX + 75, y + 10, { align: 'right' });
+        doc.text(formatMoney(factureData.montantTVA || 0), totalsX + 75, y + 20, { align: 'right' });
+
+        // Ligne separation
+        doc.setDrawColor(...primaryColor);
+        doc.setLineWidth(0.5);
+        doc.line(totalsX + 5, y + 25, totalsX + 75, y + 25);
+
+        // Total TTC
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...primaryColor);
+        doc.text('TOTAL TTC:', totalsX + 5, y + 35);
+        doc.text(formatMoney(factureData.montantTTC || 0), totalsX + 75, y + 35, { align: 'right' });
+
+        y += 50;
+
+        // === BADGE STATUT ===
+        if (factureData.statut === 'PAYEE') {
+            doc.setFillColor(...successColor);
+            doc.rect(marginLeft, y, 40, 10, 'F');
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255);
+            doc.text('PAYEE', marginLeft + 20, y + 7, { align: 'center' });
+            y += 15;
+        } else if (factureData.statut === 'ANNULEE') {
+            doc.setFillColor(...dangerColor);
+            doc.rect(marginLeft, y, 45, 10, 'F');
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255);
+            doc.text('ANNULEE', marginLeft + 22, y + 7, { align: 'center' });
+            y += 15;
+        }
+
+        // === COORDONNEES BANCAIRES ===
+        if (entreprise?.iban && y < 250) {
+            doc.setFillColor(250, 251, 252);
+            doc.rect(marginLeft, y, contentWidth, 18, 'F');
+            
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...primaryColor);
+            doc.text('Coordonnees bancaires', marginLeft + 5, y + 7);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...darkText);
+            doc.text('IBAN: ' + entreprise.iban, marginLeft + 5, y + 14);
+            if (entreprise?.bic) {
+                doc.text('BIC: ' + entreprise.bic, marginLeft + 100, y + 14);
+            }
+            y += 22;
+        }
+
+        // === CONDITIONS ===
+        if (y < 265) {
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...grayText);
+            doc.text('Conditions de paiement : Paiement a reception de facture.', marginLeft, y);
+        }
+
+        // === PIED DE PAGE ===
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(marginLeft, 285, pageWidth - marginRight, 285);
+
+        doc.setFontSize(8);
+        doc.setTextColor(...grayText);
+        doc.text(nomEntreprise, marginLeft, 290);
+        doc.text('Page 1/1', pageWidth / 2, 290, { align: 'center' });
+        
+        const today = new Date();
+        const dateStr = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
+        doc.text('Genere le ' + dateStr, pageWidth - marginRight, 290, { align: 'right' });
+
+        // Telecharger
+        doc.save('Facture_' + numeroFacture + '.pdf');
+        Utils.showToast('PDF telecharge avec succes', 'success');
+
+    } catch (error) {
+        console.error('Erreur lors de la generation du PDF:', error);
+        Utils.showToast('Erreur lors de la generation du PDF', 'error');
+    }
 }
 
 /**

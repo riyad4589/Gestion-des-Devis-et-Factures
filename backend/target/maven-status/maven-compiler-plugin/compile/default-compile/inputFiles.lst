@@ -13,6 +13,7 @@ C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\mone
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\exception\BusinessException.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\UserService.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\ClientService.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\mapper\EntrepriseMapper.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\controller\ProduitController.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\impl\ProduitServiceImpl.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\exception\ErrorResponse.java
@@ -23,8 +24,10 @@ C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\mone
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\controller\AuthController.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\mapper\ProduitMapper.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\entity\Devis.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\dto\EntrepriseDTO.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\dto\ClientDTO.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\config\CorsConfig.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\repository\EntrepriseRepository.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\ProduitService.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\controller\FactureController.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\impl\FactureServiceImpl.java
@@ -45,10 +48,15 @@ C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\mone
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\dto\LoginRequest.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\impl\PdfServiceImpl.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\GestionDevisFacturesApplication.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\config\EncodingConfig.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\dto\FactureDTO.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\entity\Entreprise.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\impl\ClientServiceImpl.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\controller\EntrepriseController.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\impl\EntrepriseServiceImpl.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\entity\User.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\repository\ClientRepository.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\repository\DevisRepository.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\dto\FactureDetailDTO.java
 C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\exception\ResourceNotFoundException.java
+C:\Users\PC\Desktop\Gestion-des-Devis-et-Factures\backend\src\main\java\com\monentreprise\gestiondevisfactures\service\EntrepriseService.java
