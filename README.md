@@ -539,7 +539,6 @@ La base de données MySQL est hébergée sur **Aiven Cloud** et est pré-configu
 </tr>
 </table>
 </p>
----
 
 <div align="center">
 
@@ -547,4 +546,5 @@ La base de données MySQL est hébergée sur **Aiven Cloud** et est pré-configu
 [![Retour en haut](https://img.shields.io/badge/⬆️-Retour_en_haut-blue?style=for-the-badge)](#top)
 
 </div>
+
 
