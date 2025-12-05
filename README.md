@@ -223,19 +223,19 @@ Swagger UI : `http://localhost:8080/swagger-ui.html`
 
 **Option 1 : Avec Python**
 ```bash
-cd frontend1
+cd frontend
 python -m http.server 5500
 ```
 
 **Option 2 : Avec Node.js**
 ```bash
-cd frontend1
+cd frontend
 npx serve -l 5500
 ```
 
 **Option 3 : Extension VS Code Live Server**
 - Installer l'extension "Live Server"
-- Ouvrir `frontend1/écran_connexion.html`
+- Ouvrir `frontend/écran_connexion.html`
 - Clic droit → "Open with Live Server"
 
 ### 🐳 Démarrage avec Docker
@@ -546,5 +546,6 @@ La base de données MySQL est hébergée sur **Aiven Cloud** et est pré-configu
 [![Retour en haut](https://img.shields.io/badge/⬆️-Retour_en_haut-blue?style=for-the-badge)](#top)
 
 </div>
+
 
 
