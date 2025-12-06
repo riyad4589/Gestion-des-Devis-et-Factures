@@ -12,14 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
     clientId = urlParams.get('id');
     isEditMode = !!clientId;
 
+    console.log('Mode édition client:', isEditMode, 'ID client:', clientId);
+
     updatePageTitle();
+    setupForm();
+    setupEventListeners();
     
     if (isEditMode) {
         loadClient();
     }
-
-    setupForm();
-    setupEventListeners();
 });
 
 /**
@@ -42,14 +43,38 @@ function updatePageTitle() {
  * Charge les données du client pour modification
  */
 async function loadClient() {
+    if (!clientId) {
+        console.log('Aucun ID de client fourni - mode création');
+        return;
+    }
+
+    console.log('Chargement du client avec ID:', clientId);
+
     try {
-        const client = await API.Clients.getById(clientId);
+        // Attendre que l'API soit disponible
+        if (!window.API || !window.API.Clients) {
+            console.error('L\'API Clients n\'est pas disponible');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (!window.API || !window.API.Clients) {
+                throw new Error('API Clients indisponible');
+            }
+        }
+
+        console.log('Récupération du client depuis l\'API...');
+        const client = await window.API.Clients.getById(clientId);
+        
+        console.log('Client reçu:', client);
+        
+        if (!client) {
+            throw new Error('Client non trouvé');
+        }
+
         populateForm(client);
-        // Mettre à jour le titre après le chargement
         updatePageTitle();
+        console.log('Formulaire client chargé avec succès');
     } catch (error) {
         console.error('Erreur lors du chargement du client:', error);
-        Utils.showToast('Client introuvable', 'error');
+        Utils.showToast('Erreur: ' + (error.message || 'Client introuvable'), 'error');
         setTimeout(() => {
             window.location.href = 'écran_clients_(liste).html';
         }, 2000);

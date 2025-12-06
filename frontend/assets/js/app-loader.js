@@ -170,7 +170,7 @@
         if (cachedName) return cachedName;
 
         try {
-            const API_BASE_URL = "https://gestion-des-devis-et-factures.onrender.com";
+            const API_BASE_URL = "http://localhost:8080";
 
             const response = await fetch(`${API_BASE_URL}/api/entreprise`);
 

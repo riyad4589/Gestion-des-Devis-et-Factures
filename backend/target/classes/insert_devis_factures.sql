@@ -1,5 +1,5 @@
 -- Script pour insérer 5 devis et 5 factures avec leurs lignes de détails
--- Exécuter avec: mysql --user avnadmin --password=AVNS_v0CTPDpEzEsSbNrVzle --host mysql-3f2a328e-riyadmaj10-0380.b.aivencloud.com --port 14484 defaultdb < insert_devis_factures.sql
+-- Import exemple MySQL (ancienne version) : mysql --user user --password=pass --host localhost --port 3306 database < insert_devis_factures.sql
 
 -- =====================================================
 -- INSERTION DES 5 DEVIS

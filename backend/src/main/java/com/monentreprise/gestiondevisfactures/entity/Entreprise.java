@@ -43,6 +43,6 @@ public class Entreprise {
     @Column(name = "email", length = 100)
     private String email;
 
-    @Column(name = "logo", columnDefinition = "LONGTEXT")
+    @Column(name = "logo", columnDefinition = "TEXT")
     private String logo;
 }

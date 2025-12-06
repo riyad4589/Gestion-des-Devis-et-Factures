@@ -6,7 +6,7 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen?style=for-the-badge&logo=springboot&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-Aiven-blue?style=for-the-badge&logo=mysql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.x-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow?style=for-the-badge&logo=javascript&logoColor=black)
 
@@ -34,13 +34,105 @@ Application web complète pour la gestion des devis, factures, clients et produi
 
 ---
 
-## 📸 Aperçu
+## 📸 Aperçu & Screenshots
 
 L'application GestFacture propose une interface moderne et responsive avec :
 - 🎨 Design épuré avec Tailwind CSS
 - 🌙 Support du mode sombre
 - 📱 Interface responsive
 - 🔐 Système d'authentification
+
+### Connexion
+<div align="center">
+<img src="screens/login.png" alt="Écran de connexion" width="600"/>
+
+**Page de connexion avec authentification sécurisée**
+</div>
+
+### Tableau de Bord
+<div align="center">
+<img src="screens/accueil.png" alt="Tableau de bord" width="600"/>
+
+**Tableau de bord avec statistiques et indicateurs clés**
+</div>
+
+### Gestion des Clients
+<div align="center">
+<img src="screens/client.png" alt="Liste des clients" width="600"/>
+
+**Liste des clients avec recherche et filtrage**
+</div>
+
+<div align="center">
+<img src="screens/addclient.png" alt="Ajouter un client" width="600"/>
+
+**Formulaire d'ajout de nouveau client**
+</div>
+
+<div align="center">
+<img src="screens/modifierclient.png" alt="Modifier un client" width="600"/>
+
+**Formulaire de modification d'un client existant**
+</div>
+
+<div align="center">
+<img src="screens/historiqueclient.png" alt="Historique client" width="600"/>
+
+**Historique des devis et factures d'un client**
+</div>
+
+### Gestion des Produits
+<div align="center">
+<img src="screens/produit.png" alt="Liste des produits" width="600"/>
+
+**Catalogue de produits avec gestion du stock**
+</div>
+
+<div align="center">
+<img src="screens/addproduit.png" alt="Ajouter un produit" width="600"/>
+
+**Formulaire d'ajout de nouveau produit**
+</div>
+
+### Gestion des Devis
+<div align="center">
+<img src="screens/devis.png" alt="Liste des devis" width="600"/>
+
+**Liste de tous les devis avec statuts**
+</div>
+
+<div align="center">
+<img src="screens/detaildevis.png" alt="Détail d'un devis" width="600"/>
+
+**Détails complets d'un devis avec lignes de produits**
+</div>
+
+### Gestion des Factures
+<div align="center">
+<img src="screens/facture.png" alt="Liste des factures" width="600"/>
+
+**Liste de toutes les factures avec statuts de paiement**
+</div>
+
+<div align="center">
+<img src="screens/detailfacture.png" alt="Détail d'une facture" width="600"/>
+
+**Détails complets d'une facture**
+</div>
+
+### Statistiques
+<div align="center">
+<img src="screens/stats.png" alt="Statistiques et graphiques" width="600"/>
+
+**Tableau de bord analytique avec graphiques interactifs**
+</div>
+
+### Paramètres
+<div align="center">
+<img src="screens/settings.png" alt="Paramètres" width="600"/>
+
+**Paramètres utilisateur et configuration d'entreprise**
+</div>
 
 ---
 
@@ -101,7 +193,7 @@ L'application GestFacture propose une interface moderne et responsive avec :
 | Java | 17 | Langage de programmation |
 | Spring Boot | 3.2.0 | Framework applicatif |
 | Spring Data JPA | - | Accès aux données |
-| MySQL (Aiven) | Cloud | Base de données |
+| PostgreSQL | 15+ | Base de données |
 | iText 7 | 7.2.5 | Génération PDF |
 | SpringDoc OpenAPI | 2.3.0 | Documentation API (Swagger) |
 | Lombok | - | Réduction du boilerplate |
@@ -213,7 +305,7 @@ mvn spring-boot:run
 
 Le serveur démarre sur `http://localhost:8080`
 
-> ⚠️ **Note** : La base de données MySQL est hébergée sur Aiven Cloud et déjà configurée dans `application.properties`.
+Base de données : configurez PostgreSQL (ex. `DB_URL=jdbc:postgresql://localhost:5432/gestion_devis_factures`, `DB_USERNAME`, `DB_PASSWORD`) dans `application.properties` ou via variables d'environnement.
 
 ### Accès à l'API Documentation
 
@@ -237,96 +329,6 @@ npx serve -l 5500
 - Installer l'extension "Live Server"
 - Ouvrir `frontend/écran_connexion.html`
 - Clic droit → "Open with Live Server"
-
-### 🐳 Démarrage avec Docker
-
-L'application peut être lancée via Docker pour un déploiement simplifié.
-
-#### Prérequis Docker
-- 🐳 Docker Desktop installé et lancé
-- 📦 Docker Compose
-
-#### Fichiers Docker
-
-**docker-compose.yml** - Configuration de l'orchestration :
-```yaml
-version: "3.9"
-
-services:
-  backend:
-    build: ./backend
-    container_name: gestfacture-backend
-    ports:
-      - "8080:8080"
-    environment:
-      DB_URL: "jdbc:mysql://..."
-      DB_USERNAME: "avnadmin"
-      DB_PASSWORD: "***"
-```
-
-**backend/Dockerfile** - Build multi-stage optimisé :
-```dockerfile
-# Étape 1 : Build Maven
-FROM maven:3.9-eclipse-temurin-17 AS build
-WORKDIR /app
-COPY pom.xml .
-RUN mvn -q -DskipTests dependency:go-offline
-COPY src ./src
-RUN mvn -q -DskipTests package
-
-# Étape 2 : Runtime
-FROM eclipse-temurin:17-jre
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
-CMD ["java", "-jar", "app.jar"]
-```
-
-#### Commandes Docker
-
-| Commande | Description |
-|----------|-------------|
-| `docker compose up --build` | Construire et démarrer l'application |
-| `docker compose up -d` | Démarrer en arrière-plan (mode détaché) |
-| `docker compose down` | Arrêter et supprimer les conteneurs |
-| `docker compose logs -f` | Afficher les logs en temps réel |
-| `docker compose ps` | Lister les conteneurs en cours |
-| `docker compose build --no-cache` | Reconstruire sans cache |
-
-#### Démarrage rapide avec Docker
-
-```bash
-# Cloner le projet
-git clone https://github.com/riyad4589/Gestion-des-Devis-et-Factures.git
-cd Gestion-des-Devis-et-Factures
-
-# Construire et lancer le backend
-docker compose up --build
-
-# Ou en mode détaché
-docker compose up -d --build
-```
-
-Le backend sera accessible sur `http://localhost:8080`
-
-#### Commandes utiles
-
-```bash
-# Voir les logs du backend
-docker logs gestfacture-backend
-
-# Suivre les logs en temps réel
-docker logs -f gestfacture-backend
-
-# Accéder au shell du conteneur
-docker exec -it gestfacture-backend /bin/sh
-
-# Redémarrer le conteneur
-docker compose restart
-
-# Arrêter proprement
-docker compose down
-```
 
 ### 🔑 Identifiants par défaut
 
@@ -507,10 +509,9 @@ Configuration dans `CorsConfig.java`.
 
 ### Configuration Base de Données
 
-La base de données MySQL est hébergée sur **Aiven Cloud** et est pré-configurée dans le projet.
+La base de données utilise PostgreSQL en local. Configurez les variables d'environnement `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` ou ajustez `application.properties` (par défaut `jdbc:postgresql://localhost:5432/gestion`).
 
-- **Encodage** : UTF-8 (utf8mb4_unicode_ci) pour supporter tous les caractères spéciaux
-- **Collation** : utf8mb4_unicode_ci
+- **Encodage** : UTF-8
 - Configuration dans `application.properties` et `EncodingConfig.java`
 
 ---

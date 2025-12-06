@@ -24,15 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
     produitId = urlParams.get('id');
     isEditMode = !!produitId;
 
+    console.log('Mode édition:', isEditMode, 'ID produit:', produitId);
+
     updatePageTitle();
     setupCategorySelect();
-    
-    if (isEditMode) {
-        loadProduit();
-    }
-
     setupForm();
     setupEventListeners();
+    
+    if (isEditMode) {
+        // Attendre que les scripts externes (api.js) soient chargés
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadProduit);
+        } else {
+            loadProduit();
+        }
+    }
 });
 
 /**
@@ -71,14 +77,38 @@ function setupCategorySelect() {
  * Charge les données du produit pour modification
  */
 async function loadProduit() {
+    if (!produitId) {
+        console.log('Aucun ID de produit fourni - mode création');
+        return;
+    }
+
+    console.log('Chargement du produit avec ID:', produitId);
+
     try {
-        const produit = await API.Produits.getById(produitId);
+        // Attendre que l'API soit disponible
+        if (!window.API || !window.API.Produits) {
+            console.error('L\'API Produits n\'est pas disponible');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            if (!window.API || !window.API.Produits) {
+                throw new Error('API Produits indisponible');
+            }
+        }
+
+        console.log('Récupération du produit depuis l\'API...');
+        const produit = await window.API.Produits.getById(produitId);
+        
+        console.log('Produit reçu:', produit);
+        
+        if (!produit) {
+            throw new Error('Produit non trouvé');
+        }
+
         populateForm(produit);
-        // Mettre à jour le titre après le chargement
         updatePageTitle();
+        console.log('Formulaire chargé avec succès');
     } catch (error) {
         console.error('Erreur lors du chargement du produit:', error);
-        Utils.showToast('Produit introuvable', 'error');
+        Utils.showToast('Erreur: ' + (error.message || 'Produit introuvable'), 'error');
         setTimeout(() => {
             window.location.href = 'écran_produits_(liste).html';
         }, 2000);
@@ -92,51 +122,38 @@ function populateForm(produit) {
     const form = document.querySelector('form');
     if (!form) return;
 
-    // Mapper les champs du formulaire
-    const fieldMappings = {
+    // Stocker l'ID du produit dans le champ caché
+    const produitIdInput = document.getElementById('produit-id');
+    if (produitIdInput) {
+        produitIdInput.value = produit.id;
+    }
+
+    // Remplir directement par ID (plus fiable)
+    const fields = {
         'nom': produit.nom,
-        'name': produit.nom,
         'description': produit.description,
-        'prixUnitaireHT': produit.prixUnitaireHT,
-        'prix': produit.prixUnitaireHT,
-        'price': produit.prixUnitaireHT,
-        'stock': produit.stock,
         'categorie': produit.categorie,
-        'category': produit.categorie,
-        'actif': produit.actif,
-        'active': produit.actif
+        'prixUnitaireHT': produit.prixUnitaireHT ? parseFloat(produit.prixUnitaireHT).toFixed(2) : '',
+        'stock': produit.stock || 0,
+        'actif': produit.actif
     };
 
-    // Remplir les champs
-    Object.keys(fieldMappings).forEach(fieldName => {
-        const input = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
+    // Remplir les champs par ID
+    Object.entries(fields).forEach(([fieldId, value]) => {
+        const input = document.getElementById(fieldId);
         if (input) {
             if (input.type === 'checkbox') {
-                input.checked = fieldMappings[fieldName];
-            } else if (input.tagName === 'SELECT') {
-                input.value = fieldMappings[fieldName] || '';
+                input.checked = value === true || value === 'true';
             } else {
-                input.value = fieldMappings[fieldName] || '';
+                input.value = value || '';
             }
+            // Déclencher les événements pour la validation
+            input.dispatchEvent(new Event('input'));
+            input.dispatchEvent(new Event('change'));
         }
     });
 
-    // Essayer de remplir par placeholder si les noms ne correspondent pas
-    const inputs = form.querySelectorAll('input, textarea, select');
-    inputs.forEach(input => {
-        const placeholder = (input.placeholder || '').toLowerCase();
-        const label = input.previousElementSibling?.textContent?.toLowerCase() || '';
-        
-        if ((placeholder.includes('nom') || label.includes('nom')) && !input.value) {
-            input.value = produit.nom || '';
-        } else if ((placeholder.includes('prix') || label.includes('prix')) && !input.value) {
-            input.value = produit.prixUnitaireHT || '';
-        } else if ((placeholder.includes('stock') || label.includes('stock')) && !input.value) {
-            input.value = produit.stock || '';
-        } else if ((placeholder.includes('description') || label.includes('description')) && !input.value) {
-            input.value = produit.description || '';
-        }
-    });
+    console.log('Formulaire pré-rempli avec les données du produit:', produit);
 }
 
 /**
