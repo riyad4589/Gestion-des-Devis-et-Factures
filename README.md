@@ -18,19 +18,17 @@ Application web complète pour la gestion des devis, factures, clients et produi
 
 ## 📑 Plan
 
-<div align="center">
+| 📸 | ✨ | 🛠️ | 📁 |
+|:---:|:---:|:---:|:---:|
+| **[Aperçu](#-aperçu--screenshots)** | **[Fonctionnalités](#-fonctionnalités)** | **[Technologies](#-technologies)** | **[Structure](#-structure-du-projet)** |
 
-[![Aperçu](https://img.shields.io/badge/📸-Aperçu-blue?style=for-the-badge)](#-aperçu)
-[![Fonctionnalités](https://img.shields.io/badge/✨-Fonctionnalités-green?style=for-the-badge)](#-fonctionnalités)
-[![Technologies](https://img.shields.io/badge/🛠️-Technologies-orange?style=for-the-badge)](#️-technologies)
-[![Structure](https://img.shields.io/badge/📁-Structure-purple?style=for-the-badge)](#-structure-du-projet)
-[![Installation](https://img.shields.io/badge/🚀-Installation-red?style=for-the-badge)](#-installation-et-démarrage)
-[![API](https://img.shields.io/badge/📡-API_REST-cyan?style=for-the-badge)](#-api-rest)
-[![Données](https://img.shields.io/badge/📊-Modèle_Données-yellow?style=for-the-badge)](#-modèle-de-données)
-[![Config](https://img.shields.io/badge/🔧-Configuration-gray?style=for-the-badge)](#-configuration)
-[![Contributeurs](https://img.shields.io/badge/👤-Contributeurs-pink?style=for-the-badge)](#-contributeurs)
+| 🚀 | 📡 | 📊 | 🔧 |
+|:---:|:---:|:---:|:---:|
+| **[Installation](#-installation-et-démarrage)** | **[API REST](#-api-rest)** | **[Modèle Données](#-modèle-de-données)** | **[Configuration](#-configuration)** |
 
-</div>
+| 👤 | ⬆️ |
+|:---:|:---:|
+| **[Contributeurs](#-contributeurs)** | **[Retour en haut](#top)** |
 
 ---
 
