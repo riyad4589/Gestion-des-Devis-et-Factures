@@ -18,17 +18,15 @@ Application web complète pour la gestion des devis, factures, clients et produi
 
 ## 📑 Plan
 
-| 📸 | ✨ | 🛠️ | 📁 |
-|:---:|:---:|:---:|:---:|
-| **[Aperçu](#-aperçu--screenshots)** | **[Fonctionnalités](#-fonctionnalités)** | **[Technologies](#-technologies)** | **[Structure](#-structure-du-projet)** |
-
-| 🚀 | 📡 | 📊 | 🔧 |
-|:---:|:---:|:---:|:---:|
-| **[Installation](#-installation-et-démarrage)** | **[API REST](#-api-rest)** | **[Modèle Données](#-modèle-de-données)** | **[Configuration](#-configuration)** |
-
-| 👤 | ⬆️ |
-|:---:|:---:|
-| **[Contributeurs](#-contributeurs)** | **[Retour en haut](#top)** |
+- 📸 **[Aperçu](#-aperçu--screenshots)**
+- ✨ **[Fonctionnalités](#-fonctionnalités)**
+- 🛠️ **[Technologies](#-technologies)**
+- 📁 **[Structure](#-structure-du-projet)**
+- 🚀 **[Installation](#-installation-et-démarrage)**
+- 📡 **[API REST](#-api-rest)**
+- 📊 **[Modèle Données](#-modèle-de-données)**
+- 🔧 **[Configuration](#-configuration)**
+- 👤 **[Contributeurs](#-contributeurs)**
 
 ---
 
