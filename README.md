@@ -20,7 +20,7 @@ Application web complète pour la gestion des devis, factures, clients et produi
 
 - 📸 **[Aperçu](#-aperçu--screenshots)**
 - ✨ **[Fonctionnalités](#-fonctionnalités)**
-- 🛠️ **[Technologies](#technologies)**
+- 🛠️ **[Technologies](#-technologies)**
 - 📁 **[Structure](#-structure-du-projet)**
 - 🚀 **[Installation](#-installation-et-démarrage)**
 - 📡 **[API REST](#-api-rest)**
