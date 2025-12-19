@@ -330,7 +330,7 @@ npx serve -l 5500
 
 | Email | Mot de passe | Rôle |
 |-------|--------------|------|
-| `admin@gmail.com` | admin1234 | ADMIN |
+| `admin@gmail.com` | admin123 | ADMIN |
 
 ---
 

@@ -14,6 +14,8 @@ async function initSidebar() {
     const sidebarContainer = document.getElementById('sidebar-container');
     if (sidebarContainer) {
         sidebarContainer.innerHTML = generateSidebar();
+        // Initialiser le thème (doit être fait après injection du HTML)
+        setupThemeToggle();
         highlightCurrentPage();
         setupLogout();
         // Charger le nom de l'entreprise depuis l'API
@@ -71,6 +73,50 @@ function updateSidebarLogo(logoBase64) {
     const logoContainer = document.getElementById('sidebar-logo-container');
     if (logoContainer && logoBase64) {
         logoContainer.innerHTML = `<img src="${logoBase64}" alt="Logo" class="w-8 h-8 rounded-lg object-cover">`;
+    }
+}
+
+/**
+ * Thème : gestion (sauvegarde dans localStorage, application de la classe 'dark')
+ */
+function getStoredTheme() {
+    return localStorage.getItem('theme');
+}
+
+function detectSystemTheme() {
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+        root.classList.add('dark');
+    } else {
+        root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+
+    // Mettre à jour l'icône/label du bouton si présent
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) {
+        const icon = btn.querySelector('.material-symbols-outlined');
+        const label = btn.querySelector('p');
+        if (icon) icon.textContent = (theme === 'dark') ? 'dark_mode' : 'light_mode';
+        if (label) label.textContent = (theme === 'dark') ? 'Sombre' : 'Clair';
+    }
+}
+
+function setupThemeToggle() {
+    const stored = getStoredTheme();
+    const initial = stored || detectSystemTheme();
+    applyTheme(initial);
+
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            applyTheme(current === 'dark' ? 'light' : 'dark');
+        });
     }
 }
 
@@ -133,6 +179,12 @@ function generateSidebar() {
 
                 <!-- Section du bas -->
                 <div class="mt-auto border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <!-- Bouton Thème -->
+                    <button id="theme-toggle-btn" class="sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10 transition-colors mb-2">
+                        <span class="material-symbols-outlined">dark_mode</span>
+                        <p class="text-sm font-medium">Theme</p>
+                    </button>
+
                     <!-- Paramètres -->
                     <a href="écran_paramètres.html" data-page="parametres" class="sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10 transition-colors mb-2">
                         <span class="material-symbols-outlined">settings</span>

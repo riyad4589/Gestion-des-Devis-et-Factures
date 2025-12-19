@@ -6,6 +6,18 @@
 const AUTH_API_URL = 'http://localhost:8080/api/auth';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Appliquer le thème stocké ou le thème système dès le chargement
+    try {
+        const stored = localStorage.getItem('theme');
+        const prefersDark = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (stored === 'dark' || (!stored && prefersDark)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    } catch (e) {
+        // ignore
+    }
     // Vérifier si déjà connecté
     const isLoggedIn = localStorage.getItem('isLoggedIn');
     const currentPage = window.location.pathname;
